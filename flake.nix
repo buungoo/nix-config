@@ -1,0 +1,118 @@
+{
+  description = "Bungo's Nix Configuration";
+  outputs =
+    {
+      self,
+      nixpkgs,
+      ...
+    }@inputs:
+    let
+      inherit (self) outputs;
+
+      # ========= Architectures =========
+      forAllSystems = nixpkgs.lib.genAttrs [
+        "x86_64-linux"
+        #"aarch64-darwin"
+      ];
+
+      # ========== Extend lib with lib.custom ==========
+      lib = nixpkgs.lib.extend (
+        self: super: { custom = import ./lib { inherit (nixpkgs) lib inputs; }; }
+      );
+    in
+    {
+      # ========= Overlays =========
+      # Custom modifications/overrides to upstream packages
+      overlays = import ./overlays { inherit inputs; };
+
+      # ========= Host Configurations =========
+      nixosConfigurations = builtins.listToAttrs (
+        map (host: {
+          name = host;
+          value = nixpkgs.lib.nixosSystem {
+            specialArgs = {
+              inherit inputs outputs lib;
+              isDarwin = false;
+            };
+            modules = [ ./hosts/nixos/${host} ];
+          };
+        }) (builtins.attrNames (builtins.readDir ./hosts/nixos))
+      );
+
+      # ========= Packages =========
+      # Expose custom packages
+      /*
+        NOTE: This is only for exposing packages exterally; ie, `nix build .#packages.x86_64-linux.cd-gitroot`
+        For internal use, these packages are added through the default overlay in `overlays/default.nix`
+      */
+      packages = forAllSystems (
+        system:
+        let
+          pkgs = import nixpkgs {
+            inherit system;
+            overlays = [ self.overlays.default ];
+          };
+        in
+        nixpkgs.lib.packagesFromDirectoryRecursive {
+          callPackage = nixpkgs.lib.callPackageWith pkgs;
+          directory = ./pkgs/common;
+        }
+      );
+
+      # ========= Formatting =========
+      # Nix formatter with treefmt wrapper for recursive formatting
+      formatter = forAllSystems (system: nixpkgs.legacyPackages.${system}.nixfmt-tree);
+
+      # ========= DevShell =========
+      # Custom shell for bootstrapping on new hosts, modifying nix-config, and secrets management
+      devShells = forAllSystems (
+        system:
+        let
+          pkgs = nixpkgs.legacyPackages.${system};
+        in
+        {
+          default = pkgs.mkShell {
+            packages = with pkgs; [
+              sops
+              age
+              git
+              nixfmt-rfc-style
+            ];
+          };
+        }
+      );
+    };
+
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+
+    home-manager = {
+      url = "github:nix-community/home-manager";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    # ========= Utilities =========
+    # Secrets management
+    sops-nix = {
+      url = "github:mic92/sops-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    # Declarative disk partitioning
+    disko = {
+      url = "github:nix-community/disko";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    # ========= Personal Repositories =========
+    # Private secrets repo
+    nix-secrets = {
+      url = "git+ssh://git@github.com/buungoo/nix-secrets.git?ref=main&shallow=1";
+      inputs = { };
+    };
+    # Declarative Jellyfin
+    declarative-jellyfin = {
+      url = "github:Sveske-Juice/declarative-jellyfin";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+  };
+}

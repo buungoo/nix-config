@@ -1,0 +1,14 @@
+# Build results
+result
+result-*
+
+# Temporary files
+.tmp
+*.tmp
+
+# Editor files
+*.swp
+*.swo
+*~
+
+latest.iso
