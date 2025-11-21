@@ -138,6 +138,12 @@
                 type = lib.types.bool;
                 default = false;
               };
+
+              primary = lib.mkOption {
+                description = "Whether `${name}` is the primary user";
+                type = lib.types.bool;
+                default = false;
+              };
             };
           }
         )
@@ -152,6 +158,7 @@
             "networkmanager"
             "docker"
           ];
+          primary = true;
         };
       };
     };
@@ -457,9 +464,11 @@
 
     assertions =
       let
-        # 1. every host must have hosts/nixos/<hostName>
+        platform = if config.hostSpec.isDarwin then "darwin" else "nixos";
+
+        # 1. every host must have hosts/<platform>/<hostName>
         hostDirExists = builtins.pathExists (
-          lib.custom.relativeToRoot "hosts/nixos/${config.hostSpec.hostName}"
+          lib.custom.relativeToRoot "hosts/${platform}/${config.hostSpec.hostName}"
         );
 
         # 2. every user must have home/<user>/<hostName>
@@ -475,11 +484,20 @@
       [
         {
           assertion = hostDirExists;
-          message = "hosts/nixos/${config.hostSpec.hostName} is missing";
+          message = "hosts/${platform}/${config.hostSpec.hostName} is missing";
         }
         {
           assertion = usersExist || (builtins.length missingUsers == 0);
           message = "home/${builtins.elemAt missingUsers 0}/${config.hostSpec.hostName} is missing";
+        }
+        {
+          assertion =
+            let
+              primaryUsers = lib.filterAttrs (_: user: user.primary or false) config.hostSpec.users;
+              primaryCount = builtins.length (lib.attrNames primaryUsers);
+            in
+            primaryCount == 1;
+          message = "Exactly one user must have primary = true in hostSpec.users";
         }
       ];
   };

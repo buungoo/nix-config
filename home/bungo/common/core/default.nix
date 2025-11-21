@@ -3,15 +3,21 @@
   config,
   lib,
   pkgs,
+  hostSpec,
   ...
 }:
+let
+  platform = if hostSpec.isDarwin then "darwin" else "nixos";
+in
 {
   imports = [
-    ./nixos.nix # Platform-specific config
+    ./${platform}.nix # Platform-specific config
     ./ssh.nix
     ./zoxide.nix
     ./btop.nix
     ./zsh.nix
+    ./dua.nix
+    ./nvim.nix
   ];
 
   home = {
@@ -24,8 +30,11 @@
 
     git = {
       enable = true;
-      userEmail = "bungo@example.com";
-      userName = "Bungo User";
+      settings = {
+        user.email = hostSpec.users.bungo.userEmail;
+        user.name = hostSpec.users.bungo.fullName;
+        init.defaultBranch = "main";
+      };
     };
 
     direnv = {

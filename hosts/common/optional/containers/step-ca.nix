@@ -309,11 +309,11 @@
 
             script = ''
               # Initialize step-ca with ECDSA keys:
-              # - Domain: ca.bungos.xyz
+              # - Domain: ca.${hostConfig.hostSpec.domain}
               # - Provisioner: Initial JWK provisioner
               # - Intermediate password from SOPS secret
               ${pkgs.step-cli}/bin/step ca init \
-                --name="Bungos Internal CA" \
+                --name="${hostConfig.hostSpec.domain} Internal CA" \
                 --dns="ca.${hostConfig.hostSpec.domain}" \
                 --address=":9443" \
                 --provisioner="admin" \

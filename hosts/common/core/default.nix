@@ -20,34 +20,14 @@ in
     (map lib.custom.relativeToRoot [
       "modules/common"
       "hosts/common/core/${platform}.nix"
-      "hosts/common/core/sops.nix"
-      "hosts/common/users/declarative-users.nix"
+      "hosts/common/core/sops-${platform}.nix"
     ])
   ];
 
   # Time and locale
   time.timeZone = lib.mkDefault "Europe/Stockholm";
-  i18n = {
-    defaultLocale = lib.mkDefault "en_US.UTF-8";
-    extraLocaleSettings = lib.mkDefault {
-      LC_ADDRESS = lib.mkDefault "sv_SE.UTF-8";
-      LC_IDENTIFICATION = lib.mkDefault "sv_SE.UTF-8";
-      LC_MEASUREMENT = lib.mkDefault "sv_SE.UTF-8";
-      LC_MONETARY = lib.mkDefault "sv_SE.UTF-8";
-      LC_NAME = lib.mkDefault "sv_SE.UTF-8";
-      LC_NUMERIC = lib.mkDefault "sv_SE.UTF-8";
-      LC_PAPER = lib.mkDefault "sv_SE.UTF-8";
-      LC_TELEPHONE = lib.mkDefault "sv_SE.UTF-8";
-      LC_TIME = lib.mkDefault "sv_SE.UTF-8";
-    };
-  };
 
-  networking = {
-    hostName = config.hostSpec.hostName;
-    firewall.enable = true;
-	};
-
-  services.openssh.enable = true;
+  networking.hostName = config.hostSpec.hostName;
 
   # System-wide packages that should be on ALL systems
   environment.systemPackages = with pkgs; [
@@ -106,9 +86,8 @@ in
       min-free = 128000000; # 128MB
       max-free = 1000000000; # 1GB
 
-      trusted-users = [ "@wheel" ];
       # Deduplicate and optimize nix store
-      auto-optimise-store = true;
+      # Note: auto-optimise-store removed - use nix.optimise.automatic in platform-specific config
       warn-dirty = false;
 
       allow-import-from-derivation = true;
@@ -117,13 +96,6 @@ in
         "nix-command"
         "flakes"
       ];
-    };
-
-    # Automatic garbage collection - keep only the 10 most recent generations
-    gc = {
-      automatic = true;
-      dates = "weekly";
-      options = "--delete-generations +10";
     };
   };
 
