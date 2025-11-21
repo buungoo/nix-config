@@ -9,12 +9,21 @@
   hostSpec,
   ...
 }:
+let
+  platform = if hostSpec.isDarwin then "darwin" else "nixos";
+in
 {
+  imports = [
+    ./${platform}.nix
+  ];
   home = {
     username = userName;
     homeDirectory = userVars.home;
-    stateVersion = lib.mkDefault "23.05";
     preferXdgDirectories = true;
+
+    sessionVariables = {
+      SOPS_AGE_KEY_FILE = "${userVars.home}/.config/sops/age/keys.txt";
+    };
   };
 
   programs = {
@@ -33,6 +42,4 @@
     };
   };
 
-  # Nicely reload system units when changing configs
-  systemd.user.startServices = "sd-switch";
 }

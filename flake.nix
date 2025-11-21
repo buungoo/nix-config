@@ -4,6 +4,7 @@
     {
       self,
       nixpkgs,
+      nix-darwin,
       ...
     }@inputs:
     let
@@ -12,7 +13,7 @@
       # ========= Architectures =========
       forAllSystems = nixpkgs.lib.genAttrs [
         "x86_64-linux"
-        #"aarch64-darwin"
+        "aarch64-darwin"
       ];
 
       # ========== Extend lib with lib.custom ==========
@@ -37,6 +38,20 @@
             modules = [ ./hosts/nixos/${host} ];
           };
         }) (builtins.attrNames (builtins.readDir ./hosts/nixos))
+      );
+
+      # ========= Darwin Configurations =========
+      darwinConfigurations = builtins.listToAttrs (
+        map (host: {
+          name = host;
+          value = nix-darwin.lib.darwinSystem {
+            specialArgs = {
+              inherit inputs outputs lib;
+              isDarwin = true;
+            };
+            modules = [ ./hosts/darwin/${host} ];
+          };
+        }) (builtins.attrNames (builtins.readDir ./hosts/darwin))
       );
 
       # ========= Packages =========
@@ -102,11 +117,36 @@
       url = "github:nix-community/disko";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # nix-darwin for macOS support
+    nix-darwin = {
+      url = "github:LnL7/nix-darwin";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    # ========= Applications =========
+    # Ghostty terminal emulator (using flake because aarch64-darwin is not yet in nixpkgs)
+    ghostty = {
+      url = "github:ghostty-org/ghostty";
+    };
+    # nixCats neovim configuration
+    nvim-config = {
+      url = "github:buungoo/nvim-config";
+    };
+    # brew-nix for macOS applications (Homebrew Casks as Nix packages)
+    brew-nix = {
+      url = "github:BatteredBunny/brew-nix";
+      inputs.brew-api.follows = "brew-api";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    brew-api = {
+      url = "github:BatteredBunny/brew-api";
+      flake = false;
+    };
 
     # ========= Personal Repositories =========
-    # Private secrets repo
+    # Private secrets repo (using local path instead of SSH to avoid daemon issues)
     nix-secrets = {
-      url = "git+ssh://git@github.com/buungoo/nix-secrets.git?ref=main&shallow=1";
+      url = "git+file:///Users/bungo/.nixos/nix-secrets";
       inputs = { };
     };
     # Declarative Jellyfin

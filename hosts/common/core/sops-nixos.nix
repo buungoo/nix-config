@@ -1,6 +1,4 @@
-# hosts level sops. TODO: home/[user]/common/optional/sops.nix for home/user level
-
-# sops.nix
+# NixOS-specific sops configuration
 {
   pkgs,
   lib,
@@ -20,9 +18,6 @@ in
       sshKeyPaths = [ "/etc/ssh/ssh_host_ed25519_key" ];
     };
     # secrets will be output to /run/secrets
-    # e.g. /run/secrets/bungo-password
-    # secrets required for user creation are handled in respective ./users/<username>.nix files
-    # because they will be output to /run/secrets-for-users and only when the user is assigned to a host.
   };
 
   # For home-manager a separate age key is used to decrypt secrets and must be placed onto the host. This is because
@@ -161,6 +156,7 @@ in
       };
     }
   ];
+
   # The containing folders are created as root and if this is the first ~/.config/ entry,
   # the ownership is busted and home-manager can't target because it can't write into .config...
   # FIXME(sops): We might not need this depending on how https://github.com/Mic92/sops-nix/issues/381 is fixed
