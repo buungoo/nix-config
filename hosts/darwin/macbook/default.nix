@@ -33,6 +33,32 @@
     # Add macbook-specific packages here
   ];
 
+  # macOS system preferences
+  system.defaults = {
+    # Required for yabai: Displays have separate Spaces
+    spaces.spans-displays = false;
+
+    dock = {
+      # Required for yabai: Disable automatic Space rearrangement
+      # This ensures space ordering remains stable for yabai commands
+      mru-spaces = false;
+    };
+
+    finder = {
+      # Required for yabai: Show items on desktop
+      # Needed for display and space focus commands in multi-display setups
+      ShowExternalHardDrivesOnDesktop = true;
+      ShowHardDrivesOnDesktop = true;
+      ShowMountedServersOnDesktop = true;
+      ShowRemovableMediaOnDesktop = true;
+    };
+
+    # Note: "Click wallpaper to reveal Desktop" = "Only in Stage Manager"
+    # This setting (com.apple.WindowManager.EnableStandardClickToShowDesktop)
+    # is not yet exposed in nix-darwin's system.defaults
+    # You may need to set this manually in System Settings
+  };
+
   # Homebrew integration (optional)
   # homebrew = {
   #   enable = true;
