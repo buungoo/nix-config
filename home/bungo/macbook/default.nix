@@ -18,6 +18,7 @@
       "home/bungo/common/optional/raycast.nix"
       "home/bungo/common/optional/discord.nix"
       "home/bungo/common/optional/commander-one.nix"
+      "home/bungo/common/optional/spotify.nix"
       "home/common/optional/sops.nix"
     ])
   ];

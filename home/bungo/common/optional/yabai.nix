@@ -1,3 +1,4 @@
+# readlink -f $(which yabai)
 {
   pkgs,
   lib,
@@ -5,6 +6,8 @@
 }:
 {
   # For advanced features (borders, opacity, title bar removal), SIP must be partially disabled
+  # Note: yabai is managed via launchd.agents below
+  # But we keep it in home.packages so the binary is in PATH for the shell commands
 
   home.packages = [ pkgs.yabai ];
 
