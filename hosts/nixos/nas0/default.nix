@@ -25,7 +25,7 @@
       "modules/services/snapraid-btrfs.nix"
       "modules/services/snapraid-btrfs-runner.nix"
 
-      "hosts/common/optional/containers/coredns.nix"
+      "hosts/common/optional/services/unbound.nix"
       "hosts/common/optional/containers/step-ca.nix"
       "hosts/common/optional/containers/immich.nix"
       "hosts/common/optional/containers/jellyfin.nix"
