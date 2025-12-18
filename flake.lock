@@ -3,11 +3,11 @@
     "brew-api": {
       "flake": false,
       "locked": {
-        "lastModified": 1766071118,
-        "narHash": "sha256-5ajb1hRnkLCMIVXU4GdgNGVMMwlBGWbvXPBruJAQXF0=",
+        "lastModified": 1766082287,
+        "narHash": "sha256-8ljR1ddj4bJnul5iFxYODyzs+5od5W4UCZs/sb6IEfs=",
         "owner": "BatteredBunny",
         "repo": "brew-api",
-        "rev": "527dfee3278610a28c2a049c9a823f637b5f292c",
+        "rev": "f64cc43d94253bb21b460fd0b1d3d12e1bb9e96e",
         "type": "github"
       },
       "original": {
@@ -272,15 +272,17 @@
       "locked": {
         "lastModified": 1763721448,
         "narHash": "sha256-NoGg+zWg6fom367NmcEbvAh2jA/qQQTAhKoaOTJfoxw=",
-        "ref": "refs/heads/main",
+        "ref": "main",
         "rev": "70c92aa28aabcf2dd70596279741086f6e7b658f",
-        "revCount": 42,
+        "shallow": true,
         "type": "git",
-        "url": "file:///Users/bungo/.nixos/nix-secrets"
+        "url": "ssh://git@github.com/buungoo/nix-secrets.git"
       },
       "original": {
+        "ref": "main",
+        "shallow": true,
         "type": "git",
-        "url": "file:///Users/bungo/.nixos/nix-secrets"
+        "url": "ssh://git@github.com/buungoo/nix-secrets.git"
       }
     },
     "nixCats": {

@@ -126,6 +126,9 @@
   networking.firewall.allowedTCPPorts = [ 53 ];
   networking.firewall.allowedUDPPorts = [ 53 ];
 
+  # Increase socket buffer size for unbound performance
+  boot.kernel.sysctl."net.core.wmem_max" = 4194304;
+
   # Set this host to use Unbound for DNS resolution
   networking.nameservers = [ "127.0.0.1" ];
 
