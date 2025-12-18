@@ -19,6 +19,9 @@
       "home/bungo/common/optional/discord.nix"
       "home/bungo/common/optional/commander-one.nix"
       "home/bungo/common/optional/spotify.nix"
+      "home/bungo/common/optional/steam.nix"
+      "home/bungo/common/optional/whisky.nix"
+      "home/bungo/common/optional/altserver.nix"
       "home/common/optional/sops.nix"
     ])
   ];
