@@ -27,7 +27,13 @@
       # Navigation
       ".." = "cd ..";
       "..." = "cd ../..";
+      "-" = "cd -";
     };
+  };
+
+  programs.starship = {
+    enable = true;
+    enableZshIntegration = true;
   };
 
   home.packages = with pkgs; [

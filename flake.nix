@@ -132,6 +132,9 @@
     nvim-config = {
       url = "github:buungoo/nvim-config";
     };
+    nixcats = {
+      url = "github:buungoo/nixcats";
+    };
     # brew-nix for macOS applications (Homebrew Casks as Nix packages)
     brew-nix = {
       url = "github:BatteredBunny/brew-nix";

@@ -1,3 +1,4 @@
+# readlink -f $(which skhd)
 {
   pkgs,
   lib,
@@ -5,6 +6,8 @@
 }:
 {
   # Works with yabai for window management keybindings
+  # Note: skhd is managed via launchd.agents below
+  # But we keep it in home.packages so the binary is in PATH for the shell commands
 
   home.packages = [ pkgs.skhd ];
 
@@ -66,7 +69,8 @@
     shift + alt - f : yabai -m window --toggle native-fullscreen
 
     # ===== Application control =====
-    alt - q : osascript -e 'tell application (path to frontmost application as text) to quit'
+    # Close focused window (not entire application)
+    alt - q : yabai -m window --close
 
     # ===== Restart services =====
     ctrl + alt - r : yabai --restart-service

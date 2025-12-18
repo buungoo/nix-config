@@ -35,6 +35,9 @@ in
         user.name = hostSpec.users.bungo.fullName;
         init.defaultBranch = "main";
       };
+      ignores = [
+        ".DS_Store"
+      ];
     };
 
     direnv = {
