@@ -51,6 +51,7 @@
     in
     {
       autoStart = true;
+      ephemeral = true;
 
       bindMounts = {
         # Jellyfin directories on storage

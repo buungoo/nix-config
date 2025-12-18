@@ -169,6 +169,25 @@
       default = { };
       type = lib.types.submodule {
         options = {
+          acme = lib.mkOption {
+            description = "ACME certificate configuration";
+            default = { };
+            type = lib.types.submodule {
+              options = {
+                email = lib.mkOption {
+                  type = lib.types.str;
+                  description = "Email address for ACME certificate notifications";
+                  example = "admin@example.com";
+                };
+                dnsProvider = lib.mkOption {
+                  type = lib.types.str;
+                  description = "DNS provider for DNS-01 challenge";
+                  example = "cloudflare";
+                };
+              };
+            };
+          };
+
           jellyfin = lib.mkOption {
             description = "Jellyfin service configuration";
             default = { };
