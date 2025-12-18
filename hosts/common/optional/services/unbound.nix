@@ -5,10 +5,35 @@
   config,
   pkgs,
   lib,
+  inputs,
   ...
 }:
+let
+  # Custom blocklist package using the latest StevenBlack commit
+  stevenblack-blocklist = pkgs.stdenv.mkDerivation {
+    name = "stevenblack-unbound";
+    version = "unstable-2025-12-16";
+    src = pkgs.fetchFromGitHub {
+      owner = "StevenBlack";
+      repo = "hosts";
+      rev = "24c51b8cc056f44c7db8a2c69a4da6af83d28731"; # 16/12/2025
+      sha256 = "sha256-1U945FYnNYi/eYpPqMFCTUHGlK1hrkxPJKlKhG0CJmU=";
+    };
 
+    sourceRoot = ".";
+
+    installPhase = ''
+      cat source/hosts | awk '/^0\.0\.0\.0/ { if ( $2 !~ /0\.0\.0\.0/ ) { print "local-zone: \""$2".\" always_null" }}' > blocklist.conf
+      mkdir -p $out
+      cp blocklist.conf $out/blocklist.conf
+    '';
+  };
+in
 {
+  imports = [
+    inputs.unbound-blocklist.nixosModules.default
+  ];
+
   # Disable systemd-resolved to avoid port 53 conflicts
   services.resolved.enable = false;
 
@@ -16,7 +41,12 @@
   services.unbound = {
     enable = true;
 
+    # Enable ad-blocking using StevenBlack blocklists
+    blocklist.enable = true;
+
     settings = {
+      # Override the blocklist include to use our updated package
+      server.include = lib.mkForce "${stevenblack-blocklist}/blocklist.conf";
       server = {
         # Network interfaces
         interface = [
@@ -56,6 +86,10 @@
         # Prefetch popular queries before they expire
         prefetch = true;
         prefetch-key = true;
+
+        # Unbound is not compiled with quic from nixpkgs rn
+        # quic-port = 853;
+        # quic-size = "8m";
 
         # Local zones for split-horizon DNS
         # All queries for *.${domain} return local IP
@@ -109,18 +143,6 @@
       };
     };
   };
-
-  # Note: DNS-over-QUIC support in Unbound requires version 1.20.0+
-  # As of NixOS 24.11, this should be available
-  # If you want to enable DoQ, add these settings:
-  #
-  # services.unbound.settings.server = {
-  #   # Experimental: DNS-over-QUIC
-  #   # Requires Unbound 1.20.0+ with QUIC support compiled in
-  #   # Uncomment if your Unbound version supports it:
-  #   # quic-port = 853;
-  #   # quic-size = "8m";
-  # };
 
   # Open firewall for DNS
   networking.firewall.allowedTCPPorts = [ 53 ];

@@ -139,6 +139,24 @@
         "type": "github"
       }
     },
+    "flake-utils_2": {
+      "inputs": {
+        "systems": "systems_3"
+      },
+      "locked": {
+        "lastModified": 1731533236,
+        "narHash": "sha256-l0KFg5HjrsfsO/JpG+r7fRrqm12kzFHyUHqHCVpMMbI=",
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "rev": "11707dc2f618dd54ca8739b309ec4fc024de578b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "type": "github"
+      }
+    },
     "ghostty": {
       "inputs": {
         "flake-compat": "flake-compat",
@@ -542,7 +560,8 @@
         "nixcats": "nixcats",
         "nixpkgs": "nixpkgs_5",
         "nvim-config": "nvim-config",
-        "sops-nix": "sops-nix"
+        "sops-nix": "sops-nix",
+        "unbound-blocklist": "unbound-blocklist"
       }
     },
     "sops-nix": {
@@ -580,6 +599,21 @@
       }
     },
     "systems_2": {
+      "locked": {
+        "lastModified": 1681028828,
+        "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",
+        "owner": "nix-systems",
+        "repo": "default",
+        "rev": "da67096a3b9bf56a91d16901293e51ba5b49a27e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-systems",
+        "repo": "default",
+        "type": "github"
+      }
+    },
+    "systems_3": {
       "locked": {
         "lastModified": 1681028828,
         "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",
@@ -634,6 +668,27 @@
       "original": {
         "owner": "numtide",
         "repo": "treefmt-nix",
+        "type": "github"
+      }
+    },
+    "unbound-blocklist": {
+      "inputs": {
+        "flake-utils": "flake-utils_2",
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1740374717,
+        "narHash": "sha256-/KTqvAeblWNcQh8Gj+t9T5MspgJ2nwvZWmpcbCsf300=",
+        "owner": "mirosval",
+        "repo": "unbound-blocklist",
+        "rev": "7ccc8125d5c74cfff2ad71dc40b54908f5816104",
+        "type": "github"
+      },
+      "original": {
+        "owner": "mirosval",
+        "repo": "unbound-blocklist",
         "type": "github"
       }
     },

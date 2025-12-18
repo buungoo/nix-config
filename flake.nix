@@ -157,5 +157,10 @@
       url = "github:Sveske-Juice/declarative-jellyfin";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # Unbound DNS blocklist for ad-blocking
+    unbound-blocklist = {
+      url = "github:mirosval/unbound-blocklist";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 }
