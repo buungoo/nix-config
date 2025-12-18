@@ -149,7 +149,7 @@
     # ========= Personal Repositories =========
     # Private secrets repo (using local path instead of SSH to avoid daemon issues)
     nix-secrets = {
-      url = "git+file:///Users/bungo/.nixos/nix-secrets";
+      url = "git+ssh://git@github.com/buungoo/nix-secrets.git?ref=main&shallow=1";
       inputs = { };
     };
     # Declarative Jellyfin

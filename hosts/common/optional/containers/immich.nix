@@ -129,7 +129,6 @@
             machine-learning.enable = true;
             # NOTE: This will just override the default values in immich-config.json
             # See https://immich.app/docs/install/config-file/
-            secretSettings.oauth.clientSecret = hostConfig.sops.secrets."immich/oidc-client-secret".path;
             settings = {
               backup.database.enabled = false; # TODO: Setup some actaul database backup using borg
               ffmpeg = {
@@ -142,6 +141,7 @@
                 autoRegister = true;
                 buttonText = "Login";
                 clientId = "immich";
+                clientSecret._secret = hostConfig.sops.secrets."immich/oidc-client-secret".path;
                 issuerUrl = "https://auth.${config.hostSpec.domain}/oauth2/openid/immich";
                 scope = "openid profile email";
                 signingAlgorithm = "RS256";
