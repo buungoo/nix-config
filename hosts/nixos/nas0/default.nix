@@ -81,6 +81,7 @@
     lazydocker # Docker management TUI
     mergerfs # Filesystem for combining drives
     step-ca-enroll # OIDC enrollment service for step-ca client certificates
+    inputs.ghostty.packages.${pkgs.system}.default # Provides terminfo for SSH from Ghostty
   ];
 
   services.scrutiny = {
