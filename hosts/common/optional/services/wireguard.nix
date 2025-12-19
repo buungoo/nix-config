@@ -3,6 +3,7 @@
   config,
   lib,
   pkgs,
+  inputs,
   ...
 }:
 {
@@ -24,6 +25,12 @@
         {
           publicKey = "i8nNvuuU1r5a9HB5ntqTynRvnQkvktBTt2oyK2IGEgU=";
           allowedIPs = [ "10.100.0.2/32" ];
+          persistentKeepalive = 25;
+        }
+        {
+          # macbook
+          publicKey = inputs.nix-secrets.macbook.wireguard.publicKey;
+          allowedIPs = [ "10.100.0.3/32" ];
           persistentKeepalive = 25;
         }
       ];

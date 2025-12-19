@@ -14,6 +14,7 @@
       "hosts/common/core"
       "hosts/darwin/macbook/users.nix"
       "hosts/common/users/bungo/darwin.nix"
+      "hosts/common/optional/services/wireguard-client.nix"
     ])
   ];
 

@@ -30,7 +30,7 @@ in
       lib.mapAttrsToList (username: userConfig: {
         # Age key for each user (keep original key name for compatibility)
         "keys/age" = {
-          sopsFile = "${sopsFolder}/shared.yaml";
+          sopsFile = "${sopsFolder}/${config.hostSpec.hostName}.yaml";
           owner = username;
           group = config.users.users.${username}.group;
           path = "/home/${username}/.config/sops/age/keys.txt";

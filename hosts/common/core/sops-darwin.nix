@@ -30,7 +30,7 @@ in
   # This allows home-manager to decrypt its own secrets
   sops.secrets = {
     "keys/age" = {
-      sopsFile = "${sopsFolder}/shared.yaml";
+      sopsFile = "${sopsFolder}/${config.hostSpec.hostName}.yaml";
       owner = primaryUser;
       group = "staff"; # Darwin uses 'staff' group
       path = "${primaryUserConfig.home}/.config/sops/age/keys.txt";
