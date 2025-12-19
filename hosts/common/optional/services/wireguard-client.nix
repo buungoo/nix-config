@@ -5,6 +5,12 @@
   inputs,
   ...
 }:
+let
+  # Find the primary user
+  primaryUser = builtins.head (
+    lib.attrNames (lib.filterAttrs (_: user: user.primary or false) config.hostSpec.users)
+  );
+in
 {
   # WireGuard client configuration using wg-quick
   networking.wg-quick.interfaces = {
@@ -40,7 +46,11 @@
   # Add sops secret for WireGuard private key
   sops.secrets."wireguard/private_key" = {
     sopsFile = (builtins.toString inputs.nix-secrets) + "/sops/${config.hostSpec.hostName}.yaml";
-    owner = config.hostSpec.primaryUser;
+    owner = primaryUser;
     mode = "0400";
   };
+
+  # Override the launchd daemon to disable KeepAlive
+  # This allows wg-quick down to actually stop the interface
+  launchd.daemons.wg-quick-wg0.serviceConfig.KeepAlive = lib.mkForce false;
 }
