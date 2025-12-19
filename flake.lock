@@ -288,10 +288,10 @@
         "nixpkgs": "nixpkgs_3"
       },
       "locked": {
-        "lastModified": 1766180999,
-        "narHash": "sha256-6hYHQO7qHKWA1i73smU43s0HVMExLW4E5uJjGtxlyGE=",
+        "lastModified": 1766182260,
+        "narHash": "sha256-1/loMtuazSosN8FfL8fH13XxvgGYtP1xqpn2io08Ul8=",
         "ref": "main",
-        "rev": "8d715c4e451a281e11f679c656ffa2d4366d3e64",
+        "rev": "e8ba7abcc31b3c785fae6d34eb1501fc2d201216",
         "shallow": true,
         "type": "git",
         "url": "ssh://git@github.com/buungoo/nix-secrets.git"
