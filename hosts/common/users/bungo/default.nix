@@ -20,10 +20,6 @@
 
     # Use password from secrets
     hashedPasswordFile = "/run/secrets-for-users/passwords/bungo";
-
-    openssh.authorizedKeys.keys = [
-      config.hostSpec.users.bungo.sshKeys.macbook or ""
-    ];
   };
 
   home-manager.users.bungo = import ../../../../home/bungo/common/core;

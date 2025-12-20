@@ -35,8 +35,8 @@ in
       # Set shell
       shell = pkgs.${userConfig.shell};
 
-      openssh.authorizedKeys.keys = [
-      ];
+      # Add SSH public keys from hostSpec.users.<name>.sshKeys
+      openssh.authorizedKeys.keys = lib.attrValues (userConfig.sshKeys or { });
     }
   ) hostUsers;
 }
