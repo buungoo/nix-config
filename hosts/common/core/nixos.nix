@@ -43,7 +43,14 @@
   networking.firewall.enable = true;
 
   # SSH
-  services.openssh.enable = true;
+  services.openssh = {
+    enable = true;
+    settings = {
+      PasswordAuthentication = false;
+      KbdInteractiveAuthentication = false;
+      PermitRootLogin = "prohibit-password";
+    };
+  };
 
   # Nix settings
   nix.settings.trusted-users = [ "@wheel" ];
