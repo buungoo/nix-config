@@ -11,8 +11,6 @@ let
 in
 {
   # Ghostty terminal emulator
-  # On Darwin: use brew-nix (brewCasks)
-  # On Linux: use the ghostty flake
   programs.ghostty = {
     enable = true;
     package = if hostSpec.isDarwin
@@ -22,7 +20,7 @@ in
       theme = "Kanagawa Wave";
       font-family = "Menlo";
       background-opacity = 0.98;
-      # window-decoration = "none"; # window manager should handle this?
+      window-decoration = "none"; # window manager should handle this?
       # custom-shader = "${cursorTailShader}";
       custom-shader = "${cursorWarpShader}";
       custom-shader-animation = "always";

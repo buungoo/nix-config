@@ -22,6 +22,7 @@
     hashedPasswordFile = "/run/secrets-for-users/passwords/bungo";
 
     openssh.authorizedKeys.keys = [
+      config.hostSpec.users.bungo.sshKeys.macbook or ""
     ];
   };
 

@@ -23,9 +23,10 @@ in
     secrets = {
       # Nix access tokens for private repos
       # formatted as extra-access-tokens = github.com=<PAT token>
-      "tokens/nix-access-tokens" = {
-        sopsFile = "${sopsFolder}/shared.yaml";
-      };
+      # NOTE: Commented out because 'tokens' key doesn't exist in shared.yaml yet
+      # "tokens/nix-access-tokens" = {
+      #   sopsFile = "${sopsFolder}/shared.yaml";
+      # };
     };
   };
 }

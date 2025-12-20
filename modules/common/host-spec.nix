@@ -144,6 +144,16 @@
                 type = lib.types.bool;
                 default = false;
               };
+
+              sshKeys = lib.mkOption {
+                description = "SSH public keys for `${name}` on different hosts";
+                type = lib.types.attrsOf lib.types.str;
+                default = { };
+                example = {
+                  macbook = "ssh-ed25519 AAAA... bungo@macbook";
+                  nas0 = "ssh-ed25519 AAAA... bungo@nas0";
+                };
+              };
             };
           }
         )
@@ -159,6 +169,9 @@
             "docker"
           ];
           primary = true;
+          sshKeys = {
+            laptop = "ssh-ed25519 AAAA... bungo@laptop";
+          };
         };
       };
     };

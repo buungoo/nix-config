@@ -22,12 +22,19 @@
       # cat = "bat";
 
       # Better grep with ripgrep
-      grep = "rg";
+      # grep = "rg";
 
       # Navigation
       ".." = "cd ..";
       "..." = "cd ../..";
       "-" = "cd -";
+
+      # Git
+      gs = "git status";
+      ga = "git add";
+      gc = "git commit";
+      gp = "git push";
+      gsw = "git switch";
     };
   };
 
