@@ -6,4 +6,5 @@
   snapraid-btrfs-runner = pkgs.callPackage ./snapraid-btrfs-runner {
     inherit (pkgs) snapraid-btrfs;
   };
+  # quic-kernel-module = pkgs.callPackage ./quic-kernel-module { }; # May not be needed for kernel >= 6.14
 }

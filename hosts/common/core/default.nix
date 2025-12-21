@@ -63,6 +63,7 @@ in
   nixpkgs = {
     overlays = [
       outputs.overlays.default
+      outputs.overlays.samba-overlay
     ];
     config = {
       allowUnfree = true;

@@ -22,8 +22,11 @@
     "sdhci_pci"
   ];
   boot.initrd.kernelModules = [ ];
-  boot.kernelModules = [ "kvm-intel" ];
-  boot.extraModulePackages = [ ];
+  boot.kernelModules = [
+    "kvm-intel"
+    # "quic" # QUIC protocol support for SMB over QUIC (may be built-in to kernel >= 6.14)
+  ];
+  # boot.extraModulePackages = [ config.boot.kernelPackages.quic-kernel-module ];
 
   # Filesystem mounts are managed by disko (see btrfs-storage.nix)
   # fileSystems."/" = { ... };

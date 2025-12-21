@@ -9,6 +9,9 @@
 {
   nixpkgs.hostPlatform = "x86_64-linux";
 
+  # Use latest stable kernel (6.18.2) for SMB over QUIC support (requires >= 6.14)
+  boot.kernelPackages = pkgs.linuxPackages_latest;
+
   imports = lib.flatten [
     inputs.disko.nixosModules.disko
 
@@ -26,6 +29,7 @@
       "modules/services/snapraid-btrfs-runner.nix"
 
       "hosts/common/optional/services/unbound.nix"
+      "hosts/common/optional/services/samba.nix"
       "hosts/common/optional/containers/step-ca.nix"
       "hosts/common/optional/containers/immich.nix"
       "hosts/common/optional/containers/jellyfin.nix"
