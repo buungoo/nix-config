@@ -64,6 +64,7 @@ in
     overlays = [
       outputs.overlays.default
       outputs.overlays.samba-overlay
+      outputs.overlays.quic-kernel-module-overlay
     ];
     config = {
       allowUnfree = true;

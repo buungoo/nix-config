@@ -24,9 +24,13 @@
   boot.initrd.kernelModules = [ ];
   boot.kernelModules = [
     "kvm-intel"
-    # "quic" # QUIC protocol support for SMB over QUIC (may be built-in to kernel >= 6.14)
+    "quic" # QUIC protocol support for SMB over QUIC
   ];
-  # boot.extraModulePackages = [ config.boot.kernelPackages.quic-kernel-module ];
+  boot.extraModulePackages = [
+    (pkgs.callPackage ../../../pkgs/common/quic-kernel-module {
+      kernel = config.boot.kernelPackages.kernel;
+    })
+  ];
 
   # Filesystem mounts are managed by disko (see btrfs-storage.nix)
   # fileSystems."/" = { ... };
