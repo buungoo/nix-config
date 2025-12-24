@@ -49,10 +49,16 @@ in
         };
       }) config.hostSpec.users
     ))
-    # Cloudflare API credentials for ACME
+    # Cloudflare API credentials
     {
-      "cloudflare/credentials" = {
-        sopsFile = "${sopsFolder}/shared.yaml";
+      "cloudflare/api-token" = {
+        sopsFile = "${sopsFolder}/${config.hostSpec.hostName}.yaml";
+        owner = "root";
+        group = "root";
+        mode = "0400";
+      };
+      "cloudflare/acme-env" = {
+        sopsFile = "${sopsFolder}/${config.hostSpec.hostName}.yaml";
         owner = "acme";
         group = "acme";
         mode = "0400";
