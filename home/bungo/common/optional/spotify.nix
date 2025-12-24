@@ -5,7 +5,7 @@
     (pkgs.brewCasks.spotify.overrideAttrs (old: {
       src = pkgs.fetchurl {
         inherit (old.src) url;
-        sha256 = "sha256-/rrThZOpjzaHPX1raDe5X8PqtJeTI4GDS5sXSfthXTQ=";
+        sha256 = "sha256-jOn4hPbxIQncdjkuySTsBaFzM6VpojbMMgph/Vpah1k=";
       };
     }))
   ];

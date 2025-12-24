@@ -16,8 +16,7 @@ in
     (map lib.custom.relativeToRoot [
       "home/bungo/common/core"
       "home/bungo/common/optional/ghostty.nix"
-      "home/bungo/common/optional/orion.nix"
-      "home/bungo/common/optional/brave.nix"
+      "home/bungo/common/optional/vivaldi.nix"
       "home/bungo/common/optional/yabai.nix"
       "home/bungo/common/optional/skhd.nix"
       "home/bungo/common/optional/raycast.nix"

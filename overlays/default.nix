@@ -9,4 +9,7 @@
 
   # QUIC kernel module overlay
   quic-kernel-module-overlay = import ./quic-kernel-module-overlay.nix;
+
+  # Fix brew-nix Vivaldi .tar.xz extraction
+  vivaldi-fix = import ./vivaldi-fix.nix;
 }
