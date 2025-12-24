@@ -106,6 +106,8 @@ let
       }'';
 in
 {
+  imports = [ ./cloudflare-dyndns.nix ];
+
   services.haproxy = {
     enable = true;
 
@@ -263,7 +265,7 @@ in
       {
         "${config.hostSpec.domain}" = {
           domain = config.hostSpec.domain;
-          environmentFile = config.sops.secrets."cloudflare/credentials".path;
+          environmentFile = config.sops.secrets."cloudflare/acme-env".path;
           webroot = null;
         };
       }
@@ -272,10 +274,29 @@ in
         name: cfg:
         lib.nameValuePair cfg.domain {
           domain = cfg.domain;
-          environmentFile = config.sops.secrets."cloudflare/credentials".path;
+          environmentFile = config.sops.secrets."cloudflare/acme-env".path;
           webroot = null;
         }
       ) allDomains)
     ];
   };
+
+  # Make all ACME certificate services wait for DNS to be updated
+  systemd.services = lib.mkMerge [
+    # Base domain
+    {
+      "acme-${config.hostSpec.domain}" = {
+        after = [ "cloudflare-dyndns.service" ];
+        wants = [ "cloudflare-dyndns.service" ];
+      };
+    }
+    # Service domains
+    (lib.mapAttrs' (
+      name: cfg:
+      lib.nameValuePair "acme-${cfg.domain}" {
+        after = [ "cloudflare-dyndns.service" ];
+        wants = [ "cloudflare-dyndns.service" ];
+      }
+    ) allDomains)
+  ];
 }
