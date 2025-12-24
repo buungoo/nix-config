@@ -32,7 +32,7 @@
       "hosts/common/optional/services/samba.nix"
       "hosts/common/optional/containers/step-ca.nix"
       "hosts/common/optional/containers/immich.nix"
-      "hosts/common/optional/containers/jellyfin.nix"
+      # "hosts/common/optional/containers/jellyfin.nix"
       "hosts/common/optional/containers/kanidm.nix"
       "hosts/common/optional/containers/sonarr.nix"
       "hosts/common/optional/containers/radarr.nix"

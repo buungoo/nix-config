@@ -43,9 +43,9 @@ in
         # Jellyfin-specific password secrets
         "jellyfin-passwords/${username}" = {
           sopsFile = "${sopsFolder}/shared.yaml";
-          owner = "jellyfin";
-          group = "jellyfin";
-          mode = "0440";
+          owner = "root";
+          group = "root";
+          mode = "0400";
         };
       }) config.hostSpec.users
     ))
