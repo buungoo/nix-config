@@ -51,7 +51,6 @@ in
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
-        DynamicUser = true;
       };
 
       script = ''
