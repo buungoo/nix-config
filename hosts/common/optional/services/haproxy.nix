@@ -206,46 +206,66 @@ in
     443
   ];
 
-  # Create HAProxy-compatible combined certificate files
-  systemd.services.haproxy-cert-combine = {
-    description = "Combine ACME certificates for HAProxy";
-    after = map (name: "acme-${config.hostSpec.domains.${name}.domain}.service") (
-      lib.attrNames allDomains
-    );
-    wants = map (name: "acme-${config.hostSpec.domains.${name}.domain}.service") (
-      lib.attrNames allDomains
-    );
-    wantedBy = [ "multi-user.target" ];
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-    };
-    script = ''
-      ${lib.concatStringsSep "\n      " (
-        lib.mapAttrsToList (name: cfg: ''
-          if [ -f /var/lib/acme/${cfg.domain}/key.pem ]; then
-            cat /var/lib/acme/${cfg.domain}/fullchain.pem \
-                /var/lib/acme/${cfg.domain}/key.pem \
-                > /var/lib/acme/${cfg.domain}/full.pem
-            chmod 640 /var/lib/acme/${cfg.domain}/full.pem
-            chgrp haproxy /var/lib/acme/${cfg.domain}/full.pem
-          fi
-        '') allDomains
-      )}
-    '';
-  };
+  # Systemd service configurations
+  systemd.services = lib.mkMerge [
+    {
+      # Create HAProxy-compatible combined certificate files
+      haproxy-cert-combine = {
+        description = "Combine ACME certificates for HAProxy";
+        after = map (name: "acme-${config.hostSpec.domains.${name}.domain}.service") (
+          lib.attrNames allDomains
+        );
+        wants = map (name: "acme-${config.hostSpec.domains.${name}.domain}.service") (
+          lib.attrNames allDomains
+        );
+        wantedBy = [ "multi-user.target" ];
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+        };
+        script = ''
+          ${lib.concatStringsSep "\n      " (
+            lib.mapAttrsToList (name: cfg: ''
+              if [ -f /var/lib/acme/${cfg.domain}/key.pem ]; then
+                cat /var/lib/acme/${cfg.domain}/fullchain.pem \
+                    /var/lib/acme/${cfg.domain}/key.pem \
+                    > /var/lib/acme/${cfg.domain}/full.pem
+                chmod 640 /var/lib/acme/${cfg.domain}/full.pem
+                chgrp haproxy /var/lib/acme/${cfg.domain}/full.pem
+              fi
+            '') allDomains
+          )}
+        '';
+      };
 
-  # Ensure HAProxy waits for combined certificates and step-ca
-  systemd.services.haproxy = {
-    after = [
-      "haproxy-cert-combine.service"
-      "container@step-ca.service"
-    ];
-    wants = [
-      "haproxy-cert-combine.service"
-      "container@step-ca.service"
-    ];
-  };
+      # Ensure HAProxy waits for combined certificates and step-ca
+      haproxy = {
+        after = [
+          "haproxy-cert-combine.service"
+          "container@step-ca.service"
+        ];
+        wants = [
+          "haproxy-cert-combine.service"
+          "container@step-ca.service"
+        ];
+      };
+
+      # Base domain ACME waits for DNS
+      "acme-${config.hostSpec.domain}" = {
+        after = [ "cloudflare-dyndns.service" ];
+        wants = [ "cloudflare-dyndns.service" ];
+      };
+    }
+
+    # Service domain ACME certificates wait for DNS
+    (lib.mapAttrs' (
+      name: cfg:
+      lib.nameValuePair "acme-${cfg.domain}" {
+        after = [ "cloudflare-dyndns.service" ];
+        wants = [ "cloudflare-dyndns.service" ];
+      }
+    ) allDomains)
+  ];
 
   # ACME configuration - dynamically generate certificates for all configured domains
   security.acme = {
@@ -280,23 +300,4 @@ in
       ) allDomains)
     ];
   };
-
-  # Make all ACME certificate services wait for DNS to be updated
-  systemd.services = lib.mkMerge [
-    # Base domain
-    {
-      "acme-${config.hostSpec.domain}" = {
-        after = [ "cloudflare-dyndns.service" ];
-        wants = [ "cloudflare-dyndns.service" ];
-      };
-    }
-    # Service domains
-    (lib.mapAttrs' (
-      name: cfg:
-      lib.nameValuePair "acme-${cfg.domain}" {
-        after = [ "cloudflare-dyndns.service" ];
-        wants = [ "cloudflare-dyndns.service" ];
-      }
-    ) allDomains)
-  ];
 }
