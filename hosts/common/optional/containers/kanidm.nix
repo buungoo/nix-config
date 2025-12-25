@@ -32,6 +32,7 @@ in
     isSystemUser = true;
     group = "kanidm";
     uid = 993;
+    extraGroups = [ "haproxy" ]; # Need haproxy group for ACME certificate access via bind mount
   };
   users.groups.kanidm = {
     gid = 993;
