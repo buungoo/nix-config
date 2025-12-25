@@ -195,7 +195,9 @@ in
     isSystemUser = true;
     group = "haproxy";
   };
-  users.groups.haproxy = { };
+  users.groups.haproxy = {
+    gid = 991;
+  };
 
   # Add haproxy to ca-proxy group for reading step-ca certificates
   users.users.haproxy.extraGroups = [ "ca-proxy" ];

@@ -276,7 +276,7 @@ in
           };
           # Create haproxy group with same GID as host for certificate access
           users.groups.haproxy = {
-            gid = 996;
+            gid = 991;
           };
         }
       ];
