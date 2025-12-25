@@ -1,9 +1,14 @@
-# nas0-specific btrfs storage configuration
-# Defines the physical disks and their layout for nas0
+# nas1-specific btrfs storage configuration
+# Defines the physical disks and their layout for nas1
 #
 # PCIe Slot Mapping (for hot-swap capability):
 #	Slot 1 (pci-0000:01:00.0) → nvme0 → System + Data0
 #	Slot 2 (pci-0000:02:00.0) → nvme1 → Parity0
+#
+# To add another data disk in the future:
+#	1. Add entry to storage.disks list below
+#	2. Add disko disk config in disko.devices.disk section
+#	3. Everything else (snapraid, snapper, mergerfs) auto-configures!
 #
 # To swap a drive:
 #	1. Shutdown system
@@ -31,6 +36,11 @@ in
       type = "data";
       name = "data0";
     }
+    # Future: Add data1 here when adding another NVMe
+    # {
+    #   type = "data";
+    #   name = "data1";
+    # }
   ];
 
   # Physical disk layout
@@ -93,5 +103,22 @@ in
         };
       };
     };
+
+    # Future: Add nvme2 here when adding another NVMe
+    # nvme2 = {
+    #   type = "disk";
+    #   device = "/dev/disk/by-path/pci-0000:03:00.0-nvme-1";
+    #   content = {
+    #     type = "gpt";
+    #     partitions = {
+    #       data1 = {
+    #         size = "100%";
+    #         content =
+    #           st.mkBtrfsPartition "Data1" (st.mkDataDiskSubvolumes "data1")
+    #             "/mnt/snapraid-content/data1";
+    #       };
+    #     };
+    #   };
+    # };
   };
 }

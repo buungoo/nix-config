@@ -52,6 +52,7 @@
       containerIP,
       gatewayIP,
       cidr,
+      domain ? "",
       stateVersion ? "25.05",
       ...
     }:
@@ -62,10 +63,12 @@
       networking.defaultGateway = gatewayIP;
 
       # Override resolv.conf directly to avoid systemd-resolved conflicts
+      # TODO: Use host's Unbound DNS (config.hostSpec.networking.localIP) instead of external DNS
+      # This would enable split-horizon DNS and ad-blocking for containers
       environment.etc."resolv.conf".text = ''
         nameserver 1.1.1.1
         nameserver 8.8.8.8
-        search ${inputs.nix-secrets.shared.domain or ""}
+        ${lib.optionalString (domain != "") "search ${domain}"}
       '';
 
       # Disable services that might interfere with DNS

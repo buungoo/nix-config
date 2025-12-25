@@ -34,7 +34,7 @@ in
           ];
 
           # Endpoint: nas0's domain
-          endpoint = "${inputs.nix-secrets.shared.domain}:51820";
+          endpoint = "${inputs.nix-secrets.nas0.domain}:51820";
 
           # Keep connection alive
           persistentKeepalive = 25;

@@ -7,11 +7,12 @@
   ...
 }:
 {
-  # WireGuard VPN network: 10.100.0.0/24
   networking.wireguard.interfaces = {
     wg0 = {
-      # Server IP in the VPN subnet
-      ips = [ "10.100.0.1/24" ];
+      # Server IP in the VPN subnet (from hostSpec)
+      ips = [
+        "${config.hostSpec.networking.wireguardIP}/24"
+      ];
 
       # WireGuard listen port
       listenPort = 51820;
