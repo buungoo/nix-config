@@ -34,7 +34,8 @@
   # Configure root user for remote installation
   users.users.root = {
     # Password: "nixos"
-    hashedPassword = lib.mkForce "$6$rounds=656000$YfKZ8bS7zQk4pCbA$VWJhXHDJZvVDJJCHQ3J3KqHYlmH5J3nN4p1Y5KJQJQJj1J3J3J3J3J3J3J3J3J3J3J3J3J3J3J3J3J3J3J3J30";
+    # Generated with: mkpasswd -m sha-512 "nixos"
+    hashedPassword = lib.mkForce "$6$RDJI6dFi9AopqKfa$4xY/caVw29yVh6mc7nGaiLmI1rCJE6IVLuCMbnRMtgFoAJoKj9DKX5lfpqwUAEuJqFFtRuOABPfDxrfk6BV.50";
     initialHashedPassword = lib.mkForce null;
     openssh.authorizedKeys.keys = [ ];
   };
@@ -43,7 +44,10 @@
   services = {
     openssh = {
       enable = true;
-      settings.PermitRootLogin = lib.mkForce "yes";
+      settings = {
+        PermitRootLogin = lib.mkForce "yes";
+        PasswordAuthentication = lib.mkForce true;
+      };
     };
     qemuGuest.enable = true;
   };

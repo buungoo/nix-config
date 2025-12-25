@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Simple installation script for NixOS hosts
+# Remote installation script for NixOS hosts (builds on target)
+# Use this when installing from a non-x86_64-linux machine (e.g., macbook)
 # Assumes you've already:
 # - Generated host SSH key
 # - Added age key to .sops.yaml
@@ -23,7 +24,7 @@ function usage() {
   cat <<EOF
 Usage: $0 HOSTNAME IP HOST_SSH_KEY [SSH_PUB_KEY]
 
-Install NixOS on a target machine using nixos-anywhere.
+Install NixOS on a target machine using nixos-anywhere (builds on remote).
 
 ARGUMENTS:
   HOSTNAME        Hostname of the target machine (e.g., nas1)
@@ -105,6 +106,7 @@ fi
 
 SHELL=/bin/sh nix run github:nix-community/nixos-anywhere -- \
   --extra-files "$TEMP" \
+  --build-on-remote \
   --flake ".#${HOSTNAME}" \
   "root@${TARGET_IP}"
 

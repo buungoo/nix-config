@@ -10,43 +10,22 @@
   ...
 }:
 {
-  imports = lib.flatten [
+  imports = [
     (modulesPath + "/installer/scan/not-detected.nix")
     (modulesPath + "/profiles/qemu-guest.nix")
 
-    # Import minimal core modules
-    # NOTE: Do NOT import home-manager, sops, or user modules!
-    # Those depend on secrets which don't exist yet during bootstrap
-
-    (map lib.custom.relativeToRoot [
-      "modules/common"
-      "hosts/common/core/nixos.nix"
-    ])
+    # Import service modules so options exist (services won't run until full rebuild)
+    (lib.custom.relativeToRoot "modules/services/snapraid-btrfs.nix")
+    (lib.custom.relativeToRoot "modules/services/snapraid-btrfs-runner.nix")
   ];
 
-  # Minimal host spec for bootstrap
-  hostSpec = {
-    hostName = lib.mkDefault "installer";
-    stateVersion = "24.11";
-    isServer = lib.mkDefault false;
-    userFullName = "Bungo User";
-  };
+  # Mutable users for bootstrap - will be replaced by full config
+  users.mutableUsers = true;
 
-  # Create bungo user manually (can't use declarative-users.nix without SOPS)
-  users = {
-    mutableUsers = false;
-    users.bungo = {
-      isNormalUser = true;
-      extraGroups = [
-        "wheel"
-        "networkmanager"
-      ];
-      # Temporary password: "nixos"
-      hashedPassword = "$6$rounds=656000$YfKZ8bS7zQk4pCbA$VWJhXHDJZvVDJJCHQ3J3KqHYlmH5J3nN4p1Y5KJQJQJj1J3J3J3J3J3J3J3J3J3J3J3J3J3J3J3J3J3J3J3J30";
-      openssh.authorizedKeys.keys = [ ];
-      shell = pkgs.zsh;
-    };
-  };
+  # Temporary root password for local console access
+  # Password: "nixos"
+  # Generated with: mkpasswd -m sha-512 "nixos"
+  users.users.root.hashedPassword = "$6$RDJI6dFi9AopqKfa$4xY/caVw29yVh6mc7nGaiLmI1rCJE6IVLuCMbnRMtgFoAJoKj9DKX5lfpqwUAEuJqFFtRuOABPfDxrfk6BV.50";
 
   # Boot configuration
   boot = {
@@ -83,12 +62,9 @@
 
   # Additional packages needed for bootstrap
   environment.systemPackages = with pkgs; [
+    git
     rsync
-    # Secrets management
-    sops
-    age
-    ssh-to-age
   ];
 
-  system.stateVersion = config.hostSpec.stateVersion;
+  system.stateVersion = "25.11";
 }

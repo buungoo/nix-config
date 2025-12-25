@@ -15,9 +15,23 @@
     let
       inherit (self) outputs;
 
+      # Custom packages overlay
+      pkgs = import nixpkgs {
+        system = "x86_64-linux";
+        config.allowUnfree = true;
+        overlays = [
+          (final: _prev: import ../pkgs/common { pkgs = final; })
+        ];
+      };
+
       minimalSpecialArgs = {
-        inherit inputs outputs;
-        lib = nixpkgs.lib.extend (self: super: { custom = import ../lib { inherit (nixpkgs) lib; }; });
+        inherit inputs outputs pkgs;
+        lib = nixpkgs.lib.extend (self: super: {
+          custom = import ../lib {
+            inherit inputs;
+            lib = nixpkgs.lib;
+          };
+        });
       };
 
       # Helper function to create a minimal config for bootstrapping
@@ -27,6 +41,7 @@
       newConfig =
         name: diskConfig:
         nixpkgs.lib.nixosSystem {
+          inherit pkgs;
           system = "x86_64-linux";
           specialArgs = minimalSpecialArgs;
           modules = [
@@ -42,6 +57,7 @@
     {
       # Expose ISO as a package for easier building
       packages.x86_64-linux.iso = (nixpkgs.lib.nixosSystem {
+        inherit pkgs;
         system = "x86_64-linux";
         specialArgs = minimalSpecialArgs;
         modules = [ ./iso.nix ];
@@ -50,6 +66,7 @@
       nixosConfigurations = {
         # Custom installation ISO
         iso = nixpkgs.lib.nixosSystem {
+          inherit pkgs;
           system = "x86_64-linux";
           specialArgs = minimalSpecialArgs;
           modules = [ ./iso.nix ];
