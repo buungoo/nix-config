@@ -30,7 +30,7 @@ age-key:
 
 # Build a custom ISO image for installing new systems
 iso:
-  cd nixos-installer && rm -rf result && nix build .#iso.config.system.build.isoImage
+  cd nixos-installer && rm -rf result && nix build .#iso
   @echo "ISO built successfully! Available at: nixos-installer/result/iso/*.iso"
 
 # Install the latest ISO to a flash drive

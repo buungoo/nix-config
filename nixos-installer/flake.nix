@@ -40,6 +40,13 @@
         };
     in
     {
+      # Expose ISO as a package for easier building
+      packages.x86_64-linux.iso = (nixpkgs.lib.nixosSystem {
+        system = "x86_64-linux";
+        specialArgs = minimalSpecialArgs;
+        modules = [ ./iso.nix ];
+      }).config.system.build.isoImage;
+
       nixosConfigurations = {
         # Custom installation ISO
         iso = nixpkgs.lib.nixosSystem {
