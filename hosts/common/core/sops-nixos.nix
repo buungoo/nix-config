@@ -41,11 +41,12 @@ in
           neededForUsers = true;
         };
         # Jellyfin-specific password secrets
+        # TODO: fix when no more problemos
         "jellyfin-passwords/${username}" = {
           sopsFile = "${sopsFolder}/shared.yaml";
-          owner = "jellyfin";
-          group = "jellyfin";
-          mode = "0440";
+          owner = "root";
+          group = "root";
+          mode = "0400";
         };
       }) config.hostSpec.users
     ))
