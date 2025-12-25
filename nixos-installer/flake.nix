@@ -1,8 +1,8 @@
 {
-  description = "Minimal NixOS configuration for bootstrapping yano systems";
+  description = "Minimal NixOS configuration for bootstrapping established hosts";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.11";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
     disko.url = "github:nix-community/disko";
   };
 
@@ -22,51 +22,39 @@
 
       # Helper function to create a minimal config for bootstrapping
       # name: hostname
-      # disk: device path (e.g., "/dev/sda")
-      # swapSize: swap size in GiB (0 for no swap)
-      # useLuks: whether to use LUKS encryption
+      # diskConfig: path to disk configuration file relative to ../hosts/nixos/${name}/
+      #   - Typically "btrfs-storage.nix" to use the host's actual disk layout
       newConfig =
-        name: disk: swapSize: useLuks:
-        (
-          let
-            diskSpecPath =
-              if useLuks then ../hosts/common/disks/btrfs-luks.nix else ../hosts/common/disks/btrfs-simple.nix;
-          in
-          nixpkgs.lib.nixosSystem {
-            system = "x86_64-linux";
-            specialArgs = minimalSpecialArgs;
-            modules = [
-              inputs.disko.nixosModules.disko
-              diskSpecPath
-              {
-                _module.args = {
-                  inherit disk;
-                  withSwap = swapSize > 0;
-                  swapSize = builtins.toString swapSize;
-                };
-              }
-              ./minimal-configuration.nix
-              ../hosts/nixos/${name}/hardware-configuration.nix
+        name: diskConfig:
+        nixpkgs.lib.nixosSystem {
+          system = "x86_64-linux";
+          specialArgs = minimalSpecialArgs;
+          modules = [
+            inputs.disko.nixosModules.disko
+            ../hosts/nixos/${name}/${diskConfig}
+            ./minimal-configuration.nix
+            ../hosts/nixos/${name}/hardware-configuration.nix
 
-              { networking.hostName = name; }
-            ];
-          }
-        );
+            { networking.hostName = name; }
+          ];
+        };
     in
     {
       nixosConfigurations = {
         # Example configurations:
-        # host = newConfig "name" "disk" swapSize useLuks
-        # Swap size is in GiB (0 for no swap)
+        # host = newConfig "hostname" "disk-config-file.nix"
+        #
+        # disk-config-file.nix should be a path relative to ../hosts/nixos/<hostname>/
+        # Typically this is "btrfs-storage.nix" which contains the actual disk layout
 
-        # nas0 (using simple template, not custom storage)
-        nas0 = newConfig "nas0" "/dev/nvme0n1" 8 false;
+        # nas0 - uses actual disk layout from btrfs-storage.nix
+        nas0 = newConfig "nas0" "btrfs-storage.nix";
 
-        # nas1 (identical hardware to nas0)
-        nas1 = newConfig "nas1" "/dev/nvme0n1" 8 false;
+        # nas1 - uses actual disk layout from btrfs-storage.nix
+        nas1 = newConfig "nas1" "btrfs-storage.nix";
 
         # Add more hosts here as needed:
-        # newhost = newConfig "newhost" "/dev/sda" 16 true;
+        # newhost = newConfig "newhost" "btrfs-storage.nix";
       };
     };
 }

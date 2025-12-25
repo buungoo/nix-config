@@ -38,7 +38,7 @@ iso:
   @echo "ISO built successfully! Available at: latest.iso"
 
 # Install the latest ISO to a flash drive
-iso-install DRIVE: iso
+flash-iso DRIVE: iso
   @echo "WARNING: This will erase all data on {{DRIVE}}"
   @echo "Press Ctrl+C to cancel, or Enter to continue..."
   @read
