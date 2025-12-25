@@ -15,7 +15,7 @@ in
     enable = true;
     package = if hostSpec.isDarwin
       then pkgs.brewCasks.ghostty
-      else inputs.ghostty.packages.${pkgs.system}.default;
+      else pkgs.ghostty;
     settings = {
       theme = "Kanagawa Wave";
       font-family = "Menlo";

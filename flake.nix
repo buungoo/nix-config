@@ -124,10 +124,6 @@
     };
 
     # ========= Applications =========
-    # Ghostty terminal emulator (using flake because aarch64-darwin is not yet in nixpkgs)
-    ghostty = {
-      url = "github:ghostty-org/ghostty";
-    };
     # nixCats neovim configuration
     nvim-config = {
       url = "github:buungoo/nvim-config";

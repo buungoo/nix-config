@@ -86,6 +86,14 @@ cp "$SSH_PUB_KEY" "$TEMP/root/.ssh/authorized_keys"
 chmod 700 "$TEMP/root/.ssh"
 chmod 600 "$TEMP/root/.ssh/authorized_keys"
 
+# Configure SSH to use host key for GitHub
+info "Configuring SSH to use host key for GitHub authentication..."
+cat > "$TEMP/root/.ssh/config" << 'EOF'
+Host github.com
+  IdentityFile /etc/ssh/ssh_host_ed25519_key
+EOF
+chmod 600 "$TEMP/root/.ssh/config"
+
 # Clear known_hosts for this IP
 info "Clearing old SSH fingerprints for $TARGET_IP..."
 ssh-keygen -R "$TARGET_IP" 2>/dev/null || true

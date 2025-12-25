@@ -36,5 +36,8 @@
     };
   };
 
+  # nas1 is behind CGNAT, only update IPv6
+  services.cloudflare-dyndns.ipv4 = lib.mkForce false;
+
   system.stateVersion = config.hostSpec.stateVersion;
 }
