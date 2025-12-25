@@ -392,9 +392,9 @@
             "d /var/lib/step-ca 0755 step-ca step-ca -"
             "d /var/lib/step-ca/certs 0755 step-ca step-ca -"
             "d /var/lib/step-ca/secrets 0755 step-ca step-ca -"
-            "d /var/lib/step-ca/db 0755 step-ca step-ca -"
             "d /var/lib/step-ca/config 0755 step-ca step-ca -"
             "d /var/lib/step-ca/templates 0755 step-ca step-ca -"
+            "d /var/lib/step-ca-db 0755 step-ca step-ca -"
           ];
         }
       ];
