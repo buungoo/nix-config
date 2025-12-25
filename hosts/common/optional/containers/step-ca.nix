@@ -433,8 +433,15 @@
               sleep 1
             done
 
-            # Set group-readable permissions on certificate files
+            # Set group-readable permissions on certificate files and directories
             if [[ -f /mnt/storage/step-ca/.step/certs/root_ca.crt ]]; then
+              # Fix directory permissions so ca-proxy group can traverse
+              chmod 750 /mnt/storage/step-ca/.step
+              chmod 750 /mnt/storage/step-ca/.step/certs
+              chgrp ${caProxyGid} /mnt/storage/step-ca/.step
+              chgrp ${caProxyGid} /mnt/storage/step-ca/.step/certs
+
+              # Fix certificate file permissions
               chmod 640 /mnt/storage/step-ca/.step/certs/root_ca.crt
               chmod 640 /mnt/storage/step-ca/.step/certs/intermediate_ca.crt
               chgrp ${caProxyGid} /mnt/storage/step-ca/.step/certs/root_ca.crt
