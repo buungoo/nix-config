@@ -7,7 +7,7 @@ Lightweight flake for bootstrapping new hosts. Uses a two-phase approach:
 
 ## Prerequisites
 
-- Source machine with nix and flakes enabled
+- Established machine with nix and flakes enabled
 - Target machine booted into NixOS installer ISO (use `just iso`)
 - SSH access to target machine
 - nix-secrets repository configured

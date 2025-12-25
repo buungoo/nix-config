@@ -19,7 +19,7 @@
     hostName = "nas0";
     hostAlias = "Grogu";
     stateVersion = "25.05";
-    domain = inputs.nix-secrets.shared.domain;
+    domain = inputs.nix-secrets.nas0.domain;
 
     # Networking configuration
     networking = {
@@ -30,6 +30,7 @@
       localIP = inputs.nix-secrets.nas0.networking.localIP;
       localSubnet = inputs.nix-secrets.nas0.networking.localSubnet;
       localIPv6Subnet = inputs.nix-secrets.nas0.networking.localIPv6Subnet;
+      wireguardIP = inputs.nix-secrets.nas0.networking.wireguardIP;
       wireguardIPv4Subnet = inputs.nix-secrets.nas0.networking.wireguardIPv4Subnet;
       wireguardIPv6Subnet = inputs.nix-secrets.nas0.networking.wireguardIPv6Subnet;
     };

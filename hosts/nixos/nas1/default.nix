@@ -19,7 +19,7 @@
     hostName = "nas1";
     hostAlias = "Groot";
     stateVersion = "25.11";
-    domain = inputs.nix-secrets.shared.domain;
+    domain = inputs.nix-secrets.nas1.domain;
 
     # Networking configuration
     networking = {
@@ -30,6 +30,7 @@
       localIP = inputs.nix-secrets.nas1.networking.localIP;
       localSubnet = inputs.nix-secrets.nas1.networking.localSubnet;
       localIPv6Subnet = inputs.nix-secrets.nas1.networking.localIPv6Subnet;
+      wireguardIP = inputs.nix-secrets.nas1.networking.wireguardIP;
       wireguardIPv4Subnet = inputs.nix-secrets.nas1.networking.wireguardIPv4Subnet;
       wireguardIPv6Subnet = inputs.nix-secrets.nas1.networking.wireguardIPv6Subnet;
     };

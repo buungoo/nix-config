@@ -62,6 +62,9 @@
         # nas0 (using simple template, not custom storage)
         nas0 = newConfig "nas0" "/dev/nvme0n1" 8 false;
 
+        # nas1 (identical hardware to nas0)
+        nas1 = newConfig "nas1" "/dev/nvme0n1" 8 false;
+
         # Add more hosts here as needed:
         # newhost = newConfig "newhost" "/dev/sda" 16 true;
       };
