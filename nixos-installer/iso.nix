@@ -75,20 +75,9 @@
   # Level 3 takes <2min vs level 6 which takes >30min
   isoImage.squashfsCompression = "zstd -Xcompression-level 3";
 
-  # Add build timestamp to ISO
-  environment.etc = {
-    isoBuildTime = {
-      text = lib.readFile (
-        "${pkgs.runCommand "timestamp" {
-          env.when = builtins.currentTime;
-        } "echo -n `date -d @$when +%Y-%m-%d_%H-%M-%S` > $out"}"
-      );
-    };
-  };
-
-  # Show ISO build time in prompt
+  # Colorful prompt
   programs.bash.promptInit = ''
-    export PS1="\\[\\033[01;32m\\]\\u@\\h-$(cat /etc/isoBuildTime)\\[\\033[00m\\]:\\[\\033[01;34m\\]\\w\\[\\033[00m\\]\\$ "
+    export PS1="\\[\\033[01;32m\\]\\u@\\h\\[\\033[00m\\]:\\[\\033[01;34m\\]\\w\\[\\033[00m\\]\\$ "
   '';
 
   # Enable 256 color support
