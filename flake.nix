@@ -1,5 +1,5 @@
 {
-  description = "Bungo's Nix Configuration";
+  description = "Bungos nix-installer";
   outputs =
     {
       self,

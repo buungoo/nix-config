@@ -41,7 +41,14 @@
     in
     {
       nixosConfigurations = {
-        # Example configurations:
+        # Custom installation ISO
+        iso = nixpkgs.lib.nixosSystem {
+          system = "x86_64-linux";
+          specialArgs = minimalSpecialArgs;
+          modules = [ ./iso.nix ];
+        };
+
+        # Bootstrap configurations for established hosts
         # host = newConfig "hostname" "disk-config-file.nix"
         #
         # disk-config-file.nix should be a path relative to ../hosts/nixos/<hostname>/

@@ -1,8 +1,5 @@
 SOPS_FILE := "../nix-secrets/.sops.yaml"
 
-# Define path to helpers
-export HELPERS_PATH := justfile_directory() + "/nixos-installer/scripts/helpers.sh"
-
 # default recipe to display help information
 default:
   @just --list
@@ -33,16 +30,15 @@ age-key:
 
 # Build a custom ISO image for installing new systems
 iso:
-  rm -rf result
-  nix build --impure .#nixosConfigurations.iso.config.system.build.isoImage && ln -sf result/iso/*.iso latest.iso
-  @echo "ISO built successfully! Available at: latest.iso"
+  cd nixos-installer && rm -rf result && nix build .#iso.config.system.build.isoImage
+  @echo "ISO built successfully! Available at: nixos-installer/result/iso/*.iso"
 
 # Install the latest ISO to a flash drive
 flash-iso DRIVE: iso
   @echo "WARNING: This will erase all data on {{DRIVE}}"
   @echo "Press Ctrl+C to cancel, or Enter to continue..."
   @read
-  sudo dd if=latest.iso of={{DRIVE}} bs=4M status=progress oflag=sync
+  sudo dd if=nixos-installer/result/iso/*.iso of={{DRIVE}} bs=4M status=progress oflag=sync
   sync
   @echo "ISO written to {{DRIVE}} successfully!"
 
