@@ -1,4 +1,10 @@
-{ pkgs, inputs, hostSpec, lib, ... }:
+{
+  pkgs,
+  inputs,
+  hostSpec,
+  lib,
+  ...
+}:
 let
   cursorTailShader = pkgs.fetchurl {
     url = "https://raw.githubusercontent.com/sahaj-b/ghostty-cursor-shaders/main/cursor_tail.glsl";
@@ -8,23 +14,32 @@ let
     url = "https://raw.githubusercontent.com/sahaj-b/ghostty-cursor-shaders/main/cursor_warp.glsl";
     sha256 = "sha256-daQ639BJyPxvJJgs5jHUnz0AWgBnqBr/YA7G6G/BTeE=";
   };
+  bloomShader = pkgs.fetchurl {
+    url = "https://raw.githubusercontent.com/0xhckr/ghostty-shaders/refs/heads/main/bloom.glsl";
+    sha256 = "sha256-9r5suoOrO6EMXJ5d8rKfncQF/OMufVPg1LreC+DDiM8=";
+  };
 in
 {
   # Ghostty terminal emulator
   programs.ghostty = {
     enable = true;
-    package = if hostSpec.isDarwin
-      then pkgs.brewCasks.ghostty
-      else pkgs.ghostty;
+    package = if hostSpec.isDarwin then pkgs.brewCasks.ghostty else pkgs.ghostty;
+
     settings = {
       theme = "Kanagawa Wave";
       font-family = "Menlo";
       background-opacity = 0.98;
-      window-decoration = "none"; # window manager should handle this?
-      # custom-shader = "${cursorTailShader}";
-      custom-shader = "${cursorWarpShader}";
+      custom-shader = [
+        "${cursorWarpShader}"
+      ];
       custom-shader-animation = "always";
       resize-overlay = "never";
+    }
+    // lib.optionalAttrs hostSpec.isDarwin {
+      macos-titlebar-style = "hidden";
+    }
+    // lib.optionalAttrs (!hostSpec.isDarwin) {
+      window-decoration = "none";
     };
   };
 }

@@ -15,6 +15,7 @@
       "hosts/darwin/macbook/users.nix"
       "hosts/common/users/bungo/darwin.nix"
       "hosts/common/optional/services/wireguard-client.nix"
+      "hosts/common/optional/yabai.nix"
     ])
   ];
 
@@ -39,6 +40,9 @@
     # Required for yabai: Displays have separate Spaces
     spaces.spans-displays = false;
 
+    # Auto-hide menu bar for sketchybar
+    NSGlobalDomain._HIHideMenuBar = true;
+
     dock = {
       # Required for yabai: Disable automatic Space rearrangement
       # This ensures space ordering remains stable for yabai commands
@@ -53,25 +57,5 @@
       ShowMountedServersOnDesktop = true;
       ShowRemovableMediaOnDesktop = true;
     };
-
-    # Note: "Click wallpaper to reveal Desktop" = "Only in Stage Manager"
-    # This setting (com.apple.WindowManager.EnableStandardClickToShowDesktop)
-    # is not yet exposed in nix-darwin's system.defaults
-    # You may need to set this manually in System Settings
   };
-
-  # Homebrew integration (optional)
-  # homebrew = {
-  #   enable = true;
-  #   onActivation = {
-  #     autoUpdate = true;
-  #     cleanup = "zap";
-  #   };
-  #   brews = [
-  #     # CLI tools not in nixpkgs
-  #   ];
-  #   casks = [
-  #     # GUI applications
-  #   ];
-  # };
 }
