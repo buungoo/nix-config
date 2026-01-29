@@ -16,13 +16,16 @@ in
     (map lib.custom.relativeToRoot [
       "home/bungo/common/core"
       "home/bungo/common/optional/ghostty.nix"
+      "home/bungo/common/optional/drawio.nix"
       "home/bungo/common/optional/vivaldi.nix"
+      "home/bungo/common/optional/iloader.nix"
       "home/bungo/common/optional/skhd.nix"
       "home/bungo/common/optional/sketchybar.nix"
       "home/bungo/common/optional/raycast.nix"
       "home/bungo/common/optional/discord.nix"
       "home/bungo/common/optional/commander-one.nix"
       "home/bungo/common/optional/spotify.nix"
+      "home/bungo/common/optional/exiftool.nix"
       "home/bungo/common/optional/steam.nix"
       "home/bungo/common/optional/whisky.nix"
       "home/bungo/common/optional/altserver.nix"
@@ -35,6 +38,10 @@ in
     sopsFile = "${sopsFolder}/${osConfig.hostSpec.hostName}.yaml";
     path = "${homeDirectory}/.ssh/id_ed25519";
   };
+
+  # Fix sops-nix launchd agent PATH (upstream bug: empty PATH prevents finding getconf)
+  launchd.agents.sops-nix.config.EnvironmentVariables.PATH =
+    lib.mkForce "/usr/bin:/bin:/usr/sbin:/sbin";
 
   home = {
     stateVersion = "25.05";

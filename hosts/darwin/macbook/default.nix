@@ -16,6 +16,7 @@
       "hosts/common/users/bungo/darwin.nix"
       "hosts/common/optional/services/wireguard-client.nix"
       "hosts/common/optional/yabai.nix"
+      "hosts/common/optional/python.nix"
     ])
   ];
 

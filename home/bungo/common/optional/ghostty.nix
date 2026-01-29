@@ -34,6 +34,12 @@ in
       ];
       custom-shader-animation = "always";
       resize-overlay = "never";
+      keybind = [
+        "super+h=goto_split:left"
+        "super+l=goto_split:right"
+        "super+j=goto_split:bottom"
+        "super+k=goto_split:top"
+      ];
     }
     // lib.optionalAttrs hostSpec.isDarwin {
       macos-titlebar-style = "hidden";

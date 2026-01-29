@@ -2,7 +2,9 @@
 { inputs }:
 {
   # This one brings our custom packages from the 'pkgs' directory
-  default = final: _prev: import ../pkgs/common { pkgs = final; };
+  default = final: _prev:
+    (import ../pkgs/common { pkgs = final; })
+    // (import ../pkgs/darwin { pkgs = final; });
 
   # Samba 4.23.x overlay for SMB over QUIC support
   samba-overlay = import ./samba-overlay.nix;

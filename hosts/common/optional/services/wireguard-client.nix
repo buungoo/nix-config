@@ -21,7 +21,7 @@ in
       # Client private key (managed via sops-nix)
       privateKeyFile = config.sops.secrets."wireguard/private_key".path;
 
-      # Configure nas0 as the peer
+      # Configure nas0 and nas1 as peers
       peers = [
         {
           # nas0 server
@@ -35,6 +35,22 @@ in
 
           # Endpoint: nas0's domain
           endpoint = "${inputs.nix-secrets.nas0.domain}:51820";
+
+          # Keep connection alive
+          persistentKeepalive = 25;
+        }
+        {
+          # nas1 server
+          publicKey = inputs.nix-secrets.nas1.wireguard.publicKey;
+
+          # Allow traffic to nas1's WireGuard IP and local network
+          allowedIPs = [
+            "10.100.0.2/32"  # nas1 WireGuard IP
+            "192.168.1.0/24" # nas1 local network
+          ];
+
+          # Endpoint: nas1's domain
+          endpoint = "${inputs.nix-secrets.nas1.domain}:51820";
 
           # Keep connection alive
           persistentKeepalive = 25;
