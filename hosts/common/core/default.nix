@@ -63,8 +63,9 @@ in
   nixpkgs = {
     overlays = [
       outputs.overlays.default
-      outputs.overlays.samba-overlay
       outputs.overlays.quic-kernel-module-overlay
+    ] ++ lib.optionals (lib.hasPrefix "nas" config.hostSpec.hostName) [
+      outputs.overlays.samba-overlay
     ];
     config = {
       allowUnfree = true;

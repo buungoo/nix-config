@@ -15,6 +15,7 @@ in
   imports = lib.flatten [
     (map lib.custom.relativeToRoot [
       "home/bungo/common/core"
+      "home/common/optional/sops.nix"
       "home/bungo/common/optional/ghostty.nix"
       "home/bungo/common/optional/drawio.nix"
       "home/bungo/common/optional/vivaldi.nix"
@@ -29,7 +30,6 @@ in
       "home/bungo/common/optional/steam.nix"
       "home/bungo/common/optional/whisky.nix"
       "home/bungo/common/optional/altserver.nix"
-      "home/common/optional/sops.nix"
     ])
   ];
 
@@ -45,9 +45,5 @@ in
 
   home = {
     stateVersion = "25.05";
-
-    packages = with pkgs; [
-      # Add macbook-specific packages here
-    ];
   };
 }
