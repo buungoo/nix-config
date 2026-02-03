@@ -9,6 +9,10 @@
     settings = {
       "$mod" = "SUPER";
 
+      exec-once = [
+        "nm-applet --indicator"
+      ];
+
       monitor = ", preferred, auto, 1";
 
       general = {
@@ -84,6 +88,7 @@
   };
 
   home.packages = with pkgs; [
+    networkmanagerapplet
     wofi
     waybar
     hyprpaper

@@ -15,6 +15,8 @@
       "hosts/nixos/desktop/hardware-configuration.nix"
       "hosts/common/core"
       "hosts/nixos/desktop/users.nix"
+
+      "hosts/nixos/common/optional/nvidia.nix"
     ])
   ];
 
