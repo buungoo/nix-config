@@ -27,6 +27,22 @@ in
     (./networking.nix)
   ];
 
+  # Kanidm secrets
+  sops.secrets = {
+    "kanidm/admin-password" = {
+      sopsFile = "${builtins.toString inputs.nix-secrets}/sops/shared.yaml";
+      owner = "kanidm";
+      group = "kanidm";
+      mode = "0400";
+    };
+    "immich/oidc-client-secret" = {
+      sopsFile = "${builtins.toString inputs.nix-secrets}/sops/shared.yaml";
+      owner = "root";
+      group = "kanidm";
+      mode = "0440";
+    };
+  };
+
   # Create kanidm user and group on host for SOPS secrets and consistency
   users.users.kanidm = {
     isSystemUser = true;

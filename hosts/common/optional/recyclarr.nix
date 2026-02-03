@@ -3,10 +3,26 @@
   config,
   pkgs,
   lib,
+  inputs,
   ...
 }:
 
 {
+  # Recyclarr API key secrets
+  sops.secrets = {
+    "recyclarr/sonarr-api-key" = {
+      sopsFile = "${builtins.toString inputs.nix-secrets}/sops/${config.hostSpec.hostName}.yaml";
+      owner = "recyclarr";
+      group = "recyclarr";
+      mode = "0400";
+    };
+    "recyclarr/radarr-api-key" = {
+      sopsFile = "${builtins.toString inputs.nix-secrets}/sops/${config.hostSpec.hostName}.yaml";
+      owner = "recyclarr";
+      group = "recyclarr";
+      mode = "0400";
+    };
+  };
   services.recyclarr = {
     enable = true;
 

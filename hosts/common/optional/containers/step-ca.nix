@@ -20,6 +20,43 @@
     (./networking.nix)
   ];
 
+  # step-ca secrets
+  sops.secrets = {
+    "step-ca/intermediate-password" = {
+      sopsFile = "${builtins.toString inputs.nix-secrets}/sops/shared.yaml";
+      owner = "root";
+      group = "root";
+      mode = "0644";
+    };
+    "step-ca/oidc-client-secret" = {
+      sopsFile = "${builtins.toString inputs.nix-secrets}/sops/shared.yaml";
+      owner = "root";
+      group = "root";
+      mode = "0644";
+    };
+    # step-ca-enroll OIDC secret for enrollment service EnvironmentFile
+    "step-ca-enroll/oidc-client-secret" = {
+      sopsFile = "${builtins.toString inputs.nix-secrets}/sops/shared.yaml";
+      owner = "root";
+      group = "root";
+      mode = "0644";
+    };
+    # step-ca-enroll OIDC secret for Kanidm basicSecretFile and step-ca
+    "step-ca-enroll/oidc-client-secret-raw" = {
+      sopsFile = "${builtins.toString inputs.nix-secrets}/sops/shared.yaml";
+      owner = "root";
+      group = "root";
+      mode = "0644";
+    };
+    # step-ca-enroll P12 password for PKCS#12 file encryption
+    "step-ca-enroll/p12-password" = {
+      sopsFile = "${builtins.toString inputs.nix-secrets}/sops/shared.yaml";
+      owner = "root";
+      group = "root";
+      mode = "0644";
+    };
+  };
+
   # Create step-ca user and group on host to match container UID/GID
   # The NixOS step-ca service auto-assigns UID/GID, so we match it on the host
   # This ensures bind-mounted directories have correct ownership across host/container boundary

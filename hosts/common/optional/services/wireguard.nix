@@ -7,6 +7,13 @@
   ...
 }:
 {
+  # WireGuard server private key
+  sops.secrets."wireguard/private_key" = {
+    sopsFile = "${builtins.toString inputs.nix-secrets}/sops/${config.hostSpec.hostName}.yaml";
+    owner = "root";
+    group = "root";
+    mode = "0400";
+  };
   networking.wireguard.interfaces = {
     wg0 = {
       # Server IP in the VPN subnet (from hostSpec)

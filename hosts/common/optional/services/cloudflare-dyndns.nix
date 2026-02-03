@@ -1,9 +1,17 @@
 # Cloudflare Dynamic DNS - keeps A/AAAA records updated with current public IP
-{ config, lib, ... }:
+{ config, lib, inputs, ... }:
 {
   imports = lib.flatten [
     (map lib.custom.relativeToRoot [ "modules/services/cloudflare-cnames.nix" ])
   ];
+
+  # Cloudflare API credentials
+  sops.secrets."cloudflare/api-token" = {
+    sopsFile = "${builtins.toString inputs.nix-secrets}/sops/${config.hostSpec.hostName}.yaml";
+    owner = "root";
+    group = "root";
+    mode = "0400";
+  };
 
   services.cloudflare-dyndns = {
     enable = true;

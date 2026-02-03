@@ -4,6 +4,7 @@
   config,
   pkgs,
   lib,
+  inputs,
   ...
 }:
 
@@ -11,6 +12,14 @@
   imports = [
     (./networking.nix)
   ];
+
+  # ProtonVPN WireGuard configuration for qbittorrent VPN tunnel
+  sops.secrets."protonvpn/wg-config" = {
+    sopsFile = "${builtins.toString inputs.nix-secrets}/sops/${config.hostSpec.hostName}.yaml";
+    owner = "root";
+    group = "root";
+    mode = "0644";
+  };
 
   hostSpec.networking.containerNetworks.arr.bridge = lib.mkDefault "arr-bridge";
   hostSpec.networking.containerNetworks.arr.subnet = lib.mkDefault "10.0.1.0/24";

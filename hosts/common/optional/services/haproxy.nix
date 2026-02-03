@@ -108,6 +108,14 @@ in
 {
   imports = [ ./cloudflare-dyndns.nix ];
 
+  # ACME credentials for certificate provisioning
+  sops.secrets."cloudflare/acme-env" = {
+    sopsFile = "${builtins.toString inputs.nix-secrets}/sops/${config.hostSpec.hostName}.yaml";
+    owner = "acme";
+    group = "acme";
+    mode = "0400";
+  };
+
   services.haproxy = {
     enable = true;
 
