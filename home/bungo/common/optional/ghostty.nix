@@ -18,6 +18,14 @@ let
     url = "https://raw.githubusercontent.com/0xhckr/ghostty-shaders/refs/heads/main/bloom.glsl";
     sha256 = "sha256-9r5suoOrO6EMXJ5d8rKfncQF/OMufVPg1LreC+DDiM8=";
   };
+  balatroShader = pkgs.fetchurl {
+    url = "https://raw.githubusercontent.com/mynameisgump/ghostty-balatro-theme/refs/heads/main/shaders/balatro.glsl";
+    sha256 = "sha256-aHVPeAEau7aBbkDh/Je0x1YxnkZ/JD7mPpJioAdn0IU=";
+  };
+  wiggleShader = pkgs.fetchurl {
+    url = "https://raw.githubusercontent.com/mynameisgump/ghostty-balatro-theme/refs/heads/main/shaders/wiggle.glsl";
+    sha256 = "sha256-akjTvLiHC4To11C1edGlVeGzXmJ5ATRVp2PK9iml90U=";
+  };
 in
 {
   # Ghostty terminal emulator
@@ -34,12 +42,7 @@ in
       ];
       custom-shader-animation = "always";
       resize-overlay = "never";
-      # keybind = [
-      #   "super+h=goto_split:left"
-      #   "super+l=goto_split:right"
-      #   "super+j=goto_split:bottom"
-      #   "super+k=goto_split:top"
-      # ];
+      app-notifications = "no-clipboard-copy";
     }
     // lib.optionalAttrs hostSpec.isDarwin {
       macos-titlebar-style = "hidden";

@@ -1,8 +1,27 @@
 {
   pkgs,
+  lib,
   ...
 }:
 {
+  # imports = lib.flatten [
+  #   (map lib.custom.relativeToRoot [
+  #     "home/bungo/common/optional/waybar.nix"
+  #     "home/bungo/common/optional/quickshell.nix"
+  #   ])
+  # ];
+  xdg.portal = {
+    enable = true;
+    extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
+    config.hyprland = {
+      default = [
+        "hyprland"
+        "gtk"
+      ];
+      "org.freedesktop.impl.portal.Secret" = [ "gnome-keyring" ];
+    };
+  };
+
   wayland.windowManager.hyprland = {
     enable = true;
 
@@ -10,7 +29,9 @@
       "$mod" = "SUPER";
 
       exec-once = [
+        "noctalia-shell"
         "nm-applet --indicator"
+        "blueman-applet"
       ];
 
       monitor = ", preferred, auto, 1";
@@ -26,12 +47,21 @@
         rounding = 10;
       };
 
+      animations = {
+        enabled = true;
+        animation = [
+          "workspaces, 0"
+        ];
+      };
+
       input = {
         kb_layout = "se";
         follow_mouse = 1;
         touchpad = {
           natural_scroll = true;
         };
+        repeat_delay = 140;
+        repeat_rate = 25;
       };
 
       bind = [
@@ -40,14 +70,29 @@
         "$mod, M, exit"
         "$mod, E, exec, dolphin"
         "$mod, V, togglefloating"
-        "$mod, D, exec, wofi --show drun"
+        "$mod, D, exec, hyprlauncher"
+        # "$mod, D, exec, wofi --show drun"
         "$mod, F, fullscreen"
 
         # Move focus
         "$mod, H, movefocus, l"
-        "$mod, L, movefocus, r"
-        "$mod, K, movefocus, u"
         "$mod, J, movefocus, d"
+        "$mod, K, movefocus, u"
+        "$mod, L, movefocus, r"
+        "$mod, LEFT, movefocus, l"
+        "$mod, DOWN, movefocus, d"
+        "$mod, UP, movefocus, u"
+        "$mod, RIGHT, movefocus, r"
+
+        # Move windows
+        "$mod SHIFT, H, movewindow, l"
+        "$mod SHIFT, J, movewindow, d"
+        "$mod SHIFT, K, movewindow, u"
+        "$mod SHIFT, L, movewindow, r"
+        "$mod SHIFT, LEFT, movewindow, l"
+        "$mod SHIFT, DOWN, movewindow, d"
+        "$mod SHIFT, UP, movewindow, u"
+        "$mod SHIFT, RIGHT, movewindow, r"
 
         # Workspaces
         "$mod, 1, workspace, 1"
@@ -72,25 +117,24 @@
         "$mod SHIFT, 8, movetoworkspace, 8"
         "$mod SHIFT, 9, movetoworkspace, 9"
         "$mod SHIFT, 0, movetoworkspace, 10"
-
-        # Move windows
-        "$mod SHIFT, H, movewindow, l"
-        "$mod SHIFT, L, movewindow, r"
-        "$mod SHIFT, K, movewindow, u"
-        "$mod SHIFT, J, movewindow, d"
-      ];
-
-      bindm = [
-        "$mod, mouse:272, movewindow"
-        "$mod, mouse:273, resizewindow"
       ];
     };
   };
 
+  services.gnome-keyring = {
+    enable = true;
+    components = [
+      "secrets"
+      "pkcs11"
+    ];
+  };
+
   home.packages = with pkgs; [
+    blueman
     networkmanagerapplet
     wofi
-    waybar
+    hyprlauncher
     hyprpaper
+    gnome-keyring
   ];
 }

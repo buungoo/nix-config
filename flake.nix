@@ -158,5 +158,17 @@
       url = "github:mirosval/unbound-blocklist";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    noctalia = {
+      url = "github:noctalia-dev/noctalia-shell";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    librepods = {
+      url = "github:demenik/librepods";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    oxicord = {
+      url = "github:linuxmobile/oxicord";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 }

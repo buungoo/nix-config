@@ -6,6 +6,7 @@
   config,
   pkgs,
   lib,
+  inputs,
   ...
 }:
 {
@@ -26,6 +27,17 @@
   # Enable networking
   networking.networkmanager.enable = true;
 
+  services.blueman.enable = true;
+  hardware.bluetooth.enable = true;
+  services.hardware.openrgb.enable = true;
+
+  environment.systemPackages = [
+    inputs.librepods.packages.${pkgs.system}.default # AirPods management
+    pkgs.pulsemixer # TUI audio mixer
+    pkgs.wiremix
+    pkgs.wl-clipboard
+  ];
+
   # Enable the X11 windowing system.
   # You can disable this if you're only using the Wayland session.
   services.xserver.enable = true;
@@ -33,6 +45,10 @@
   # Enable the KDE Plasma Desktop Environment.
   services.displayManager.sddm.enable = true;
   services.desktopManager.plasma6.enable = true;
+
+  # Keyring for Hyprland sessions
+  services.gnome.gnome-keyring.enable = true;
+  security.pam.services.sddm.enableGnomeKeyring = true;
 
   # Enable CUPS to print documents.
   services.printing.enable = true;
@@ -51,13 +67,51 @@
     # use the example session manager (no others are packaged yet so this is enabled by default,
     # no need to redefine it in your config for now)
     #media-session.enable = true;
+
+    # Enable analog audio on motherboard
+    # wpctl status
+    # wpctl inspect <id>
+    # pactl list cards
+    wireplumber.extraConfig = {
+      "10-enable-motherboard-audio" = {
+        "monitor.alsa.rules" = [
+          {
+            matches = [ { "device.name" = "alsa_card.pci-0000_0a_00.4"; } ];
+            actions.update-props."device.profile" = "output:analog-stereo+input:analog-stereo";
+          }
+        ];
+      };
+
+      # Bluetooth codec configuration
+      "11-bluetooth-tweaks" = {
+        "monitor.bluez.properties" = {
+          # Codecs
+          "bluez5.enable-sbc-xq" = true;
+          "bluez5.enable-msbc" = true;
+          "bluez5.enable-aac" = true;
+          "bluez5.enable-aptx" = true;
+          "bluez5.enable-aptx-hd" = true;
+          "bluez5.enable-ldac" = true;
+
+          # Features
+          "bluez5.enable-hw-volume" = true;
+          "bluez5.auto-switch-profile" = true;
+        };
+      };
+    };
   };
 
-  programs.hyprland.enable = true;
-
-  # Install firefox.
-  programs.firefox.enable = true;
-  programs.kdeconnect.enable = true;
+  programs = {
+    hyprland.enable = true;
+    noisetorch.enable = true;
+    firefox.enable = true;
+    kdeconnect.enable = true;
+    steam = {
+      enable = true;
+      remotePlay.openFirewall = true;
+      dedicatedServer.openFirewall = true;
+    };
+  };
 
   # Some programs need SUID wrappers, can be configured further or are
   # started in user sessions.

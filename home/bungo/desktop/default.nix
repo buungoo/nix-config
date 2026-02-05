@@ -22,6 +22,8 @@ in
       "home/bungo/common/optional/discord.nix"
       "home/bungo/common/optional/steam.nix"
       "home/bungo/common/optional/hyprland.nix"
+      "home/bungo/common/optional/noctalia.nix"
+      "home/bungo/common/optional/oxicord.nix"
     ])
   ];
 
