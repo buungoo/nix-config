@@ -16,6 +16,7 @@ in
     (map lib.custom.relativeToRoot [
       "home/bungo/common/core"
       "home/common/optional/sops.nix"
+      "home/bungo/common/optional/kdeconnect.nix"
       "home/bungo/common/optional/ghostty.nix"
       "home/bungo/common/optional/drawio.nix"
       "home/bungo/common/optional/vivaldi.nix"
