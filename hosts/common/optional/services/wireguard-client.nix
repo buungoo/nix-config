@@ -3,6 +3,7 @@
   config,
   lib,
   inputs,
+  isDarwin ? false,
   ...
 }:
 let
@@ -65,7 +66,8 @@ in
     mode = "0400";
   };
 
-  # Override the launchd daemon to disable KeepAlive
+} // lib.optionalAttrs isDarwin {
+  # Override the launchd daemon to disable KeepAlive (macOS only)
   # This allows wg-quick down to actually stop the interface
   launchd.daemons.wg-quick-wg0.serviceConfig.KeepAlive = lib.mkForce false;
 }
