@@ -20,7 +20,7 @@
   ...
 }:
 let
-  enableShellAccess = false;
+  enableShellAccess = true;
 in
 {
   imports = [
@@ -125,19 +125,18 @@ in
           ];
 
           services.kanidm = {
-            enableServer = true;
-            enableClient = true;
+            package = pkgs.kanidm_1_8.withSecretProvisioning;
 
-            package = pkgs.kanidm.withSecretProvisioning;
-
-            clientSettings = {
+            client.enable = true;
+            client.settings = {
               uri = "https://${hostConfig.hostSpec.domains.auth.domain}:8443"; # Inside container, connect directly to Kanidm
               verify_ca = true;
               verify_hostnames = true;
               ca_path = "/etc/ssl/certs/kanidm/fullchain.pem";
             };
 
-            serverSettings = {
+            server.enable = true;
+            server.settings = {
               log_level = "info";
 
               domain = hostConfig.hostSpec.domains.auth.domain;
@@ -150,7 +149,7 @@ in
               ldapbindaddress = "0.0.0.0:3636";
 
               # Trust the proxy headers from the host
-              trust_x_forward_for = true;
+              http_client_address_info.x-forward-for = [ "${net.gatewayIP}" ];
 
               # auth_failure_ttl = 300;
               # auth_failure_count = 3;
@@ -228,7 +227,7 @@ in
           # Minimal container attempt
           environment.defaultPackages = lib.mkForce [ ];
           environment.systemPackages = lib.mkForce (
-            [ pkgs.kanidm ] # Always include kanidm
+            [ pkgs.kanidm_1_8 ] # Always include kanidm
             ++ lib.optionals enableShellAccess [
               pkgs.bash
               pkgs.coreutils
@@ -240,10 +239,10 @@ in
           programs.command-not-found.enable = false;
           programs.nano.enable = lib.mkForce false;
           programs.vim.enable = lib.mkForce false;
-          programs.bash.enableCompletion = false;
+          programs.bash.completion.enable = false;
           programs.less.enable = lib.mkForce false;
 
-          # Minimal system utilities (can't remove completely without breaking)
+          # Minimal system utilities
           environment.stub-ld.enable = false; # No stub ld for non-NixOS binaries
 
           # Disable documentation
@@ -264,7 +263,7 @@ in
           # Most hardening is already applied by the NixOS kanidm module
           systemd.services.kanidm.serviceConfig = {
             # The only meaningful addition: strict filesystem protection
-            # Default: service has full access to OS file hierarchy (exposure: 0.2)
+            # Default: service has full access to OS file hierarchy
             # With strict: everything read-only except /var/lib/kanidm
             ProtectSystem = "strict";
             ReadWritePaths = [ "/var/lib/kanidm" ];

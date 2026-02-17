@@ -32,6 +32,7 @@
       "hosts/common/optional/services/samba.nix"
       "hosts/common/optional/services/scrutiny.nix"
       "hosts/common/optional/services/glance.nix"
+      "hosts/common/optional/services/cloudflare-dyndns.nix"
 
       # Containers
       "hosts/common/optional/containers/step-ca.nix"

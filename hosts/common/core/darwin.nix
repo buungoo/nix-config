@@ -48,16 +48,17 @@
   # Use nix.optimise instead of auto-optimise-store (which corrupts store)
   nix.optimise.automatic = true;
 
+  # TODO: nh possibly replaces this?
   # Garbage collection (Darwin uses interval instead of dates)
-  nix.gc = {
-    automatic = true;
-    interval = {
-      Weekday = 0;
-      Hour = 2;
-      Minute = 0;
-    };
-    options = "--delete-generations +10";
-  };
+  # nix.gc = {
+  #   automatic = true;
+  #   interval = {
+  #     Weekday = 0;
+  #     Hour = 2;
+  #     Minute = 0;
+  #   };
+  #   options = "--delete-generations +10";
+  # };
 
   # Install Rosetta 2 for x86_64 (Intel) app support on Apple Silicon
   system.activationScripts.rosetta = lib.mkIf pkgs.stdenv.isAarch64 ''

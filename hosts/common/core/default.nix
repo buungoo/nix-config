@@ -36,6 +36,7 @@ in
     tree
     neovim
     just
+    nh
   ];
 
   # Force home-manager to use global packages
@@ -64,7 +65,8 @@ in
     overlays = [
       outputs.overlays.default
       outputs.overlays.quic-kernel-module-overlay
-    ] ++ lib.optionals (lib.hasPrefix "nas" config.hostSpec.hostName) [
+    ]
+    ++ lib.optionals (lib.hasPrefix "nas" config.hostSpec.hostName) [
       outputs.overlays.samba-overlay
     ];
     config = {
@@ -106,5 +108,12 @@ in
   programs.zsh = {
     enable = true;
     enableCompletion = true;
+  };
+
+  programs.nh = {
+    enable = true;
+    clean.enable = true;
+    clean.extraArgs = "--keep-since 7d --keep 5";
+    flake = "/home/bungo/.nixos/nix-config";
   };
 }

@@ -55,11 +55,4 @@
   # Nix settings
   nix.settings.trusted-users = [ "@wheel" ];
   nix.settings.auto-optimise-store = true;
-
-  # Garbage collection
-  nix.gc = {
-    automatic = true;
-    dates = "weekly";
-    options = "--delete-generations +10";
-  };
 }
