@@ -41,6 +41,12 @@
           allowedIPs = [ "10.100.0.3/32" ];
           persistentKeepalive = 25;
         }
+        {
+          # desktop
+          publicKey = inputs.nix-secrets.desktop.wireguard.publicKey;
+          allowedIPs = [ "10.100.0.4/32" ];
+          persistentKeepalive = 25;
+        }
       ];
     };
   };

@@ -22,6 +22,7 @@
       # "hosts/common/optional/tuigreet.nix"
       "hosts/common/optional/opengamepadui.nix"
       "hosts/common/optional/steam.nix"
+      "hosts/common/optional/services/wireguard-client.nix"
     ])
   ];
 
