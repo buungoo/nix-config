@@ -187,10 +187,10 @@ in
           (lib.mapAttrsToList (name: cfg: mkTcpBackend name (getLanPort name)) allDomains)
       )}
 
-      # HTTP frontends with mTLS (public services only)
+      # HTTP frontends with mTLS (WAN access)
       ${lib.concatStringsSep "\n\n      " (lib.mapAttrsToList mkMtlsFrontend publicDomains)}
 
-      # HTTP frontends without mTLS (all services - LAN access)
+      # HTTP frontends without mTLS (LAN access)
       ${lib.concatStringsSep "\n\n      " (lib.mapAttrsToList mkLanFrontend allDomains)}
 
       # HTTP backend definitions

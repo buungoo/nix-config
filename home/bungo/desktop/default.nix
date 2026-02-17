@@ -18,12 +18,21 @@ in
       "home/common/optional/sops.nix"
 
       "home/bungo/common/optional/ghostty.nix"
+      "home/bungo/common/optional/spotify.nix"
       "home/bungo/common/optional/vivaldi.nix"
       "home/bungo/common/optional/discord.nix"
       "home/bungo/common/optional/steam.nix"
       "home/bungo/common/optional/hyprland.nix"
+      "home/bungo/common/optional/neowall.nix"
       "home/bungo/common/optional/noctalia.nix"
       "home/bungo/common/optional/oxicord.nix"
+      "home/bungo/common/optional/freetube.nix"
+      "home/bungo/common/optional/vacuumtube.nix"
+      "home/bungo/common/optional/orcaslicer.nix"
+      "home/bungo/common/optional/yazi.nix"
+
+      "home/bungo/nixos/common/optional/walker.nix"
+      # "home/bungo/nixos/common/optional/freecad.nix" # Takes ages to compile!
     ])
   ];
 

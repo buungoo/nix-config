@@ -48,7 +48,7 @@
       "hosts/common/optional/containers/bazarr.nix"
       "hosts/common/optional/containers/monitoring.nix"
 
-      # HAProxy (must be last to ensure all service domains are defined)
+      # HAProxy
       "hosts/common/optional/services/haproxy.nix"
     ])
   ];
@@ -61,7 +61,7 @@
     ghostty # Provides terminfo for SSH from Ghostty
   ];
 
-  # Shared GPU configuration (can be overridden per-host)
+  # Shared GPU configuration
   hostSpec.gpu = lib.mkDefault {
     renderDevice = "/dev/dri/renderD128";
     cardDevice = "/dev/dri/card1";

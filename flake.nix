@@ -99,6 +99,8 @@
     };
 
   inputs = {
+
+    # ========= Utilities =========
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     home-manager = {
@@ -106,69 +108,90 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # ========= Utilities =========
-    # Secrets management
     sops-nix = {
       url = "github:mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    # Declarative disk partitioning
+
     disko = {
       url = "github:nix-community/disko";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    # nix-darwin for macOS support
+
     nix-darwin = {
       url = "github:LnL7/nix-darwin";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # ========= Applications =========
-    # nixCats neovim configuration
-    nvim-config = {
-      url = "github:buungoo/nvim-config";
-    };
-    nixcats = {
-      url = "github:buungoo/nixcats";
-    };
-    # brew-nix for macOS applications (Homebrew Casks as Nix packages)
     brew-nix = {
       url = "github:BatteredBunny/brew-nix";
       inputs.brew-api.follows = "brew-api";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
     brew-api = {
       url = "github:BatteredBunny/brew-api";
       flake = false;
     };
 
-    # ========= Personal Repositories =========
-    # Private secrets repo (using local path instead of SSH to avoid daemon issues)
-    nix-secrets = {
-      url = "git+ssh://git@github.com/buungoo/nix-secrets.git?ref=main&shallow=1";
-      inputs = { };
+    wrappers = {
+      url = "github:BirdeeHub/nix-wrapper-modules";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
-    # Declarative Jellyfin
+
+    # ========= Applications =========
+    sysc-greet = {
+      url = "github:Nomadcxx/sysc-greet";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     declarative-jellyfin = {
       url = "github:Sveske-Juice/declarative-jellyfin";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    # Unbound DNS blocklist for ad-blocking
+
     unbound-blocklist = {
       url = "github:mirosval/unbound-blocklist";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
     noctalia = {
       url = "github:noctalia-dev/noctalia-shell";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
     librepods = {
       url = "github:demenik/librepods";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
     oxicord = {
       url = "github:linuxmobile/oxicord";
       inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    elephant = {
+      url = "github:abenz1267/elephant";
+    };
+
+    walker = {
+      url = "github:abenz1267/walker";
+      inputs.elephant.follows = "elephant";
+    };
+
+    # ========= Personal Repositories =========
+    nix-secrets = {
+      url = "git+ssh://git@github.com/buungoo/nix-secrets.git?ref=main&shallow=1";
+      inputs = { };
+    };
+
+    # Neovim :)
+    nixcats = {
+      url = "github:buungoo/nixcats";
+    };
+
+    vacuumtube = {
+      url = "github:buungoo/VacuumTube";
     };
   };
 }

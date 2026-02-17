@@ -18,7 +18,6 @@ in
       # Client IP in the VPN subnet
       address = [ "10.100.0.3/24" ];
 
-      # Client private key (managed via sops-nix)
       privateKeyFile = config.sops.secrets."wireguard/private_key".path;
 
       # Configure nas0 and nas1 as peers

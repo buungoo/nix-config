@@ -9,9 +9,10 @@ final: prev: {
 
     # Keep the essential patches from the original package
     # Filter out version-specific patches that may not apply
-    patches = builtins.filter (p:
-      builtins.match ".*no-persistent-install.*" (builtins.baseNameOf p) != null ||
-      builtins.match ".*fix-makeflags-parsing.*" (builtins.baseNameOf p) != null
+    patches = builtins.filter (
+      p:
+      builtins.match ".*no-persistent-install.*" (builtins.baseNameOf p) != null
+      || builtins.match ".*fix-makeflags-parsing.*" (builtins.baseNameOf p) != null
     ) (oldAttrs.patches or [ ]);
   });
 }

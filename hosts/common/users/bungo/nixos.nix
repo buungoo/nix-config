@@ -12,6 +12,7 @@
     extraGroups = [
       "audio"
       "video"
+      "render"
       "input"
       "systemd-journal"
     ];

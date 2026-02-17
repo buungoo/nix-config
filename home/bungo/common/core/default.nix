@@ -28,6 +28,7 @@ in
     sessionVariables = {
       EDITOR = "nvim";
       VISUAL = "nvim";
+      MANPAGER = "nvim +Man!";
     };
   };
 

@@ -22,6 +22,8 @@
     };
   };
 
+  programs.hyprlock.enable = true;
+
   wayland.windowManager.hyprland = {
     enable = true;
 
@@ -29,12 +31,16 @@
       "$mod" = "SUPER";
 
       exec-once = [
+        "neowall"
         "noctalia-shell"
         "nm-applet --indicator"
         "blueman-applet"
       ];
 
-      monitor = ", preferred, auto, 1";
+      monitor = [
+        "desc:Xiaomi Corporation Mi Monitor, 3440x1440@120, 0x0, 1"
+        ", preferred, auto, 1"
+      ];
 
       general = {
         gaps_in = 5;
@@ -56,7 +62,7 @@
 
       input = {
         kb_layout = "se";
-        follow_mouse = 1;
+        follow_mouse = 0;
         touchpad = {
           natural_scroll = true;
         };
@@ -70,9 +76,8 @@
         "$mod, M, exit"
         "$mod, E, exec, dolphin"
         "$mod, V, togglefloating"
-        "$mod, D, exec, hyprlauncher"
-        # "$mod, D, exec, wofi --show drun"
-        "$mod, F, fullscreen"
+        "$mod, D, exec, walker"
+        "$mod, F, fullscreen, 1"
 
         # Move focus
         "$mod, H, movefocus, l"
@@ -133,7 +138,6 @@
     blueman
     networkmanagerapplet
     wofi
-    hyprlauncher
     hyprpaper
     gnome-keyring
   ];
