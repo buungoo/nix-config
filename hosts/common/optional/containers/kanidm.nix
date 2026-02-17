@@ -21,6 +21,7 @@
 }:
 let
   enableShellAccess = true;
+  authDomain = config.custom.reverseProxy.virtualHosts.auth.domain;
 in
 {
   imports = [
@@ -35,12 +36,6 @@ in
       group = "kanidm";
       mode = "0400";
     };
-    "immich/oidc-client-secret" = {
-      sopsFile = "${builtins.toString inputs.nix-secrets}/sops/shared.yaml";
-      owner = "root";
-      group = "kanidm";
-      mode = "0440";
-    };
   };
 
   # Create kanidm user and group on host for SOPS secrets and consistency
@@ -54,9 +49,8 @@ in
   };
 
   # Domain configuration for this service
-  hostSpec.domains.auth = {
+  custom.reverseProxy.virtualHosts.auth = {
     domain = "auth.${config.hostSpec.domain}";
-    public = true;
     backendHost = "10.0.2.2";
     backendPort = 8443;
     backendSSL = true;
@@ -85,7 +79,7 @@ in
         };
         # Mount ACME certificates
         "/etc/ssl/certs/kanidm" = {
-          hostPath = hostConfig.security.acme.certs."${hostConfig.hostSpec.domains.auth.domain}".directory;
+          hostPath = hostConfig.security.acme.certs."${authDomain}".directory;
           isReadOnly = true;
         };
         # Mount SOPS secrets
@@ -115,7 +109,7 @@ in
         {
           # Make auth domain resolve to container's own IP inside container
           networking.hosts = {
-            "${net.containerIP}" = [ hostConfig.hostSpec.domains.auth.domain ];
+            "${net.containerIP}" = [ authDomain ];
           };
 
           # Open firewall for Kanidm
@@ -129,7 +123,7 @@ in
 
             client.enable = true;
             client.settings = {
-              uri = "https://${hostConfig.hostSpec.domains.auth.domain}:8443"; # Inside container, connect directly to Kanidm
+              uri = "https://${authDomain}:8443"; # Inside container, connect directly to Kanidm
               verify_ca = true;
               verify_hostnames = true;
               ca_path = "/etc/ssl/certs/kanidm/fullchain.pem";
@@ -139,8 +133,8 @@ in
             server.settings = {
               log_level = "info";
 
-              domain = hostConfig.hostSpec.domains.auth.domain;
-              origin = "https://${hostConfig.hostSpec.domains.auth.domain}";
+              domain = authDomain;
+              origin = "https://${authDomain}";
 
               tls_chain = "/etc/ssl/certs/kanidm/fullchain.pem";
               tls_key = "/etc/ssl/certs/kanidm/key.pem";
@@ -171,56 +165,12 @@ in
                 members = groupConfig.members;
               }) hostConfig.hostSpec.services.kanidm.groups;
 
-              systems.oauth2.immich = {
-                displayName = "Immich";
-                originUrl = [
-                  "https://${hostConfig.hostSpec.domains.immich.domain}/auth/login"
-                  "https://${hostConfig.hostSpec.domains.immich.domain}/api/oauth/mobile-redirect"
-                  "https://${hostConfig.hostSpec.domains.immich.domain}/user-settings"
-                  "app.immich:///oauth-callback"
-                  "app.immich://oauth-callback"
-                  "app.immich:/oauth-callback"
-                  "com.alextran.immich://oauth-callback"
-                ];
-                originLanding = "https://${hostConfig.hostSpec.domains.immich.domain}/";
-                basicSecretFile = hostConfig.sops.secrets."immich/oidc-client-secret".path;
-                enableLegacyCrypto = true; # Immich still uses RS256 instead of ES256
-                preferShortUsername = true;
-
-                scopeMaps.immich_users = [
-                  "openid"
-                  "email"
-                  "profile"
-                ];
-              };
-
-              systems.oauth2.step-ca = {
-                displayName = "step-ca Certificate Authority";
-                originUrl = "https://${hostConfig.hostSpec.domains.ca.domain}/oidc/callback";
-                originLanding = "https://${hostConfig.hostSpec.domains.ca.domain}/";
-                basicSecretFile = hostConfig.sops.secrets."step-ca/oidc-client-secret".path;
-                preferShortUsername = true;
-
-                scopeMaps.step_ca_users = [
-                  "openid"
-                  "email"
-                  "profile"
-                ];
-              };
-
-              systems.oauth2.step-ca-enroll = {
-                displayName = "Get Client Certificate";
-                originUrl = "https://${hostConfig.hostSpec.domains.ca.domain}/callback";
-                originLanding = "https://${hostConfig.hostSpec.domains.ca.domain}/enroll";
-                basicSecretFile = hostConfig.sops.secrets."step-ca-enroll/oidc-client-secret-raw".path;
-                preferShortUsername = true;
-
-                scopeMaps.step_ca_enroll_users = [
-                  "openid"
-                  "email"
-                  "profile"
-                ];
-              };
+              # OAuth2 clients declared by individual services via custom.kanidm.oauthClients
+              systems.oauth2 = lib.mapAttrs (_: client: {
+                inherit (client) displayName originUrl originLanding enableLegacyCrypto preferShortUsername;
+                basicSecretFile = client.secretFile;
+                scopeMaps = client.scopeMap;
+              }) hostConfig.custom.kanidm.oauthClients;
             };
           };
 

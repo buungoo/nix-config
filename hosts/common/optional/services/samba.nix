@@ -11,13 +11,10 @@
   ...
 }:
 {
-  # Reuse the haproxy spec but we can't proxy QUIC via it as it would terminate TLS
-  hostSpec.domains.files = {
+  # ACME cert + DNS only (no reverse proxy routing — SMB/QUIC connects directly)
+  custom.reverseProxy.virtualHosts.files = {
     domain = "files.${config.hostSpec.domain}";
-    public = false;
-    backendHost = "127.0.0.1";
-    backendPort = 445;
-    backendSSL = false;
+    proxyWan = false;
   };
 
   # Open UDP port 443 for SMB over QUIC

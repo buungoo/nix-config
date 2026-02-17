@@ -98,16 +98,15 @@ in
         # Define local data for split-horizon DNS
         local-zone = [ ''"${config.hostSpec.domain}." transparent'' ];
 
-        local-data = [
-          # Apex domain
-          ''"${config.hostSpec.domain}. A ${config.hostSpec.networking.localIP}"''
-
-          # Services
-          ''"immich.${config.hostSpec.domain}. A ${config.hostSpec.networking.localIP}"''
-          ''"auth.${config.hostSpec.domain}. A ${config.hostSpec.networking.localIP}"''
-          ''"jellyfin.${config.hostSpec.domain}. A ${config.hostSpec.networking.localIP}"''
-          ''"ca.${config.hostSpec.domain}. A ${config.hostSpec.networking.localIP}"''
-        ];
+        # Dynamically generated from custom.reverseProxy.virtualHosts
+        local-data =
+          [
+            # Apex domain
+            ''"${config.hostSpec.domain}. A ${config.hostSpec.networking.localIP}"''
+          ]
+          ++ (lib.mapAttrsToList (
+            _: vh: ''"${vh.domain}. A ${config.hostSpec.networking.localIP}"''
+          ) config.custom.reverseProxy.virtualHosts);
 
         # Allow local data to be returned for private domains
         # but forward everything else (like TXT records for ACME)

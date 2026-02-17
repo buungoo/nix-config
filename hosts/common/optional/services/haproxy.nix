@@ -2,7 +2,10 @@
 # Security model:
 #	- LAN (192.168.0.0/16): Standard TLS, no mTLS required
 #	- WAN: mTLS required with step-ca client certificates
-#	- All services: immich.<domain>.<TLD>, auth<domain>.<TLD>, ca.<domain>.<TLD>, jellyfin.<domain>.<TLD>
+#
+# Consumes custom.reverseProxy.virtualHosts declared by individual services.
+# Only virtualHosts with backendHost set get HAProxy routing.
+# ALL virtualHosts get ACME certificates.
 #
 # Troubleshooting ACME:
 # If ACME certificates fail to renew, check these services:
@@ -23,20 +26,24 @@
   ...
 }:
 let
-  # Get all public domains from hostSpec
-  publicDomains = lib.filterAttrs (name: cfg: cfg.public) config.hostSpec.domains;
-  # Get all LAN-only domains
-  lanDomains = lib.filterAttrs (name: cfg: !cfg.public) config.hostSpec.domains;
-  # All domains (public + LAN)
-  allDomains = config.hostSpec.domains;
+  # All declared virtualHosts (proxied and ACME-only)
+  allHosts = config.custom.reverseProxy.virtualHosts;
+
+  # Only virtualHosts with backends get HAProxy routing
+  proxiedHosts = lib.filterAttrs (_: vh: vh.backendHost != null) allHosts;
+  publicHosts = lib.filterAttrs (_: vh: vh.proxyWan) proxiedHosts;
+  lanHosts = lib.filterAttrs (_: vh: !vh.proxyWan) proxiedHosts;
+
+  # mTLS CA bundle from step-ca
+  mTLSCaFile = "/mnt/storage/step-ca/.step/certs/ca_bundle.crt";
 
   # Port allocation for internal HAProxy frontends
   # We need unique ports for each service's mTLS and LAN frontends
   # Strategy: Use a sorted list of service names to ensure consistent port assignment
   # mTLS ports: 8443, 8444, 8445, ... (one per public service)
-  # LAN ports: Start after all mTLS ports + 10 port buffer (one per all services)
-  sortedAllServices = lib.sort (a: b: a < b) (lib.attrNames allDomains);
-  sortedPublicServices = lib.sort (a: b: a < b) (lib.attrNames publicDomains);
+  # LAN ports: Start after all mTLS ports + 10 port buffer (one per all proxied services)
+  sortedAllServices = lib.sort (a: b: a < b) (lib.attrNames proxiedHosts);
+  sortedPublicServices = lib.sort (a: b: a < b) (lib.attrNames publicHosts);
 
   getPublicServiceIndex =
     name:
@@ -67,15 +74,15 @@ let
   mkLanRouting = name: cfg: ''use_backend https-${name}-lan-backend if is_${name} is_lan'';
 
   # Generate TCP backend that routes to internal frontend
-  mkTcpBackend = name: port: ''
-    backend https-${name}-${if port < 8446 then "mtls" else "lan"}-backend
+  mkTcpBackend = name: type: port: ''
+    backend https-${name}-${type}-backend
       mode tcp
-      server ${name}-${if port < 8446 then "mtls" else "lan"} 127.0.0.1:${toString port}'';
+      server ${name}-${type} 127.0.0.1:${toString port}'';
 
   # Generate HTTP frontend with mTLS
   mkMtlsFrontend = name: cfg: ''
     frontend https-${name}-mtls
-      bind 127.0.0.1:${toString (getMtlsPort name)} ssl crt /var/lib/acme/${cfg.domain}/full.pem ca-file /mnt/storage/step-ca/.step/certs/ca_bundle.crt verify required
+      bind 127.0.0.1:${toString (getMtlsPort name)} ssl crt /var/lib/acme/${cfg.domain}/full.pem ca-file ${mTLSCaFile} verify required
       mode http
 
       # Set headers
@@ -169,32 +176,32 @@ in
         tcp-request inspect-delay 5s
         tcp-request content accept if { req_ssl_hello_type 1 }
 
-        # SNI ACLs for all configured domains
-        ${lib.concatStringsSep "\n        " (lib.mapAttrsToList mkSniAcl allDomains)}
+        # SNI ACLs for all proxied domains
+        ${lib.concatStringsSep "\n        " (lib.mapAttrsToList mkSniAcl proxiedHosts)}
 
         # Routing rules for public domains (WAN with mTLS, LAN without)
-        ${lib.concatStringsSep "\n        " (lib.mapAttrsToList mkPublicRouting publicDomains)}
+        ${lib.concatStringsSep "\n        " (lib.mapAttrsToList mkPublicRouting publicHosts)}
 
         # Routing rules for LAN-only domains
-        ${lib.concatStringsSep "\n        " (lib.mapAttrsToList mkLanRouting lanDomains)}
+        ${lib.concatStringsSep "\n        " (lib.mapAttrsToList mkLanRouting lanHosts)}
 
-      # TCP backends - generate mTLS backends for public services and LAN backends for all services
+      # TCP backends - generate mTLS backends for public services and LAN backends for all proxied services
       ${lib.concatStringsSep "\n\n      " (
         # mTLS backends for public services
-        (lib.mapAttrsToList (name: cfg: mkTcpBackend name (getMtlsPort name)) publicDomains)
+        (lib.mapAttrsToList (name: _: mkTcpBackend name "mtls" (getMtlsPort name)) publicHosts)
         ++
-          # LAN backends for all services
-          (lib.mapAttrsToList (name: cfg: mkTcpBackend name (getLanPort name)) allDomains)
+          # LAN backends for all proxied services
+          (lib.mapAttrsToList (name: _: mkTcpBackend name "lan" (getLanPort name)) proxiedHosts)
       )}
 
       # HTTP frontends with mTLS (WAN access)
-      ${lib.concatStringsSep "\n\n      " (lib.mapAttrsToList mkMtlsFrontend publicDomains)}
+      ${lib.concatStringsSep "\n\n      " (lib.mapAttrsToList mkMtlsFrontend publicHosts)}
 
       # HTTP frontends without mTLS (LAN access)
-      ${lib.concatStringsSep "\n\n      " (lib.mapAttrsToList mkLanFrontend allDomains)}
+      ${lib.concatStringsSep "\n\n      " (lib.mapAttrsToList mkLanFrontend proxiedHosts)}
 
       # HTTP backend definitions
-      ${lib.concatStringsSep "\n\n      " (lib.mapAttrsToList mkHttpBackend allDomains)}
+      ${lib.concatStringsSep "\n\n      " (lib.mapAttrsToList mkHttpBackend proxiedHosts)}
     '';
   };
 
@@ -217,15 +224,11 @@ in
   # Systemd service configurations
   systemd.services = lib.mkMerge [
     {
-      # Create HAProxy-compatible combined certificate files
+      # Create HAProxy-compatible combined certificate files (proxied hosts only)
       haproxy-cert-combine = {
         description = "Combine ACME certificates for HAProxy";
-        after = map (name: "acme-${config.hostSpec.domains.${name}.domain}.service") (
-          lib.attrNames allDomains
-        );
-        wants = map (name: "acme-${config.hostSpec.domains.${name}.domain}.service") (
-          lib.attrNames allDomains
-        );
+        after = lib.mapAttrsToList (_: vh: "acme-${vh.domain}.service") proxiedHosts;
+        wants = lib.mapAttrsToList (_: vh: "acme-${vh.domain}.service") proxiedHosts;
         wantedBy = [ "multi-user.target" ];
         serviceConfig = {
           Type = "oneshot";
@@ -233,15 +236,15 @@ in
         };
         script = ''
           ${lib.concatStringsSep "\n      " (
-            lib.mapAttrsToList (name: cfg: ''
-              if [ -f /var/lib/acme/${cfg.domain}/key.pem ]; then
-                cat /var/lib/acme/${cfg.domain}/fullchain.pem \
-                    /var/lib/acme/${cfg.domain}/key.pem \
-                    > /var/lib/acme/${cfg.domain}/full.pem
-                chmod 640 /var/lib/acme/${cfg.domain}/full.pem
-                chgrp haproxy /var/lib/acme/${cfg.domain}/full.pem
+            lib.mapAttrsToList (_: vh: ''
+              if [ -f /var/lib/acme/${vh.domain}/key.pem ]; then
+                cat /var/lib/acme/${vh.domain}/fullchain.pem \
+                    /var/lib/acme/${vh.domain}/key.pem \
+                    > /var/lib/acme/${vh.domain}/full.pem
+                chmod 640 /var/lib/acme/${vh.domain}/full.pem
+                chgrp haproxy /var/lib/acme/${vh.domain}/full.pem
               fi
-            '') allDomains
+            '') proxiedHosts
           )}
         '';
       };
@@ -265,47 +268,46 @@ in
       };
     }
 
-    # Service domain ACME certificates wait for DNS
+    # ALL virtualHost ACME certificates wait for DNS
     (lib.mapAttrs' (
-      name: cfg:
-      lib.nameValuePair "acme-${cfg.domain}" {
+      _: vh:
+      lib.nameValuePair "acme-${vh.domain}" {
         after = [ "cloudflare-dyndns.service" ];
         wants = [ "cloudflare-dyndns.service" ];
       }
-    ) allDomains)
+    ) allHosts)
   ];
 
-  # ACME configuration - dynamically generate certificates for all configured domains
+  # ACME configuration - certificates for ALL virtualHosts (proxied and ACME-only)
   security.acme = {
     acceptTerms = true;
     defaults = {
       email = config.hostSpec.services.acme.email;
       dnsProvider = config.hostSpec.services.acme.dnsProvider;
+      environmentFile = config.sops.secrets."cloudflare/acme-env".path;
       dnsPropagationCheck = true;
       group = "haproxy";
       keyType = "ec256";
       dnsResolver = "1.1.1.1:53";
     };
 
-    # Dynamically generate certificates for base domain and all service domains
+    # Dynamically generate certificates for base domain and all virtualHosts
     certs = lib.mkMerge [
       # Base domain certificate
       {
         "${config.hostSpec.domain}" = {
           domain = config.hostSpec.domain;
-          environmentFile = config.sops.secrets."cloudflare/acme-env".path;
           webroot = null;
         };
       }
-      # Service domain certificates
+      # VirtualHost domain certificates
       (lib.mapAttrs' (
-        name: cfg:
-        lib.nameValuePair cfg.domain {
-          domain = cfg.domain;
-          environmentFile = config.sops.secrets."cloudflare/acme-env".path;
+        _: vh:
+        lib.nameValuePair vh.domain {
+          domain = vh.domain;
           webroot = null;
         }
-      ) allDomains)
+      ) allHosts)
     ];
   };
 }

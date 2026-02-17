@@ -33,59 +33,6 @@
       example = "example.com";
     };
 
-    # Service domain mappings
-    domains = lib.mkOption {
-      description = "Domain names and configuration for each service";
-      type = lib.types.attrsOf (
-        lib.types.submodule (
-          { name, ... }:
-          {
-            options = {
-              domain = lib.mkOption {
-                type = lib.types.str;
-                description = "Domain name for ${name}";
-              };
-              public = lib.mkOption {
-                type = lib.types.bool;
-                default = true;
-                description = "Whether this service is exposed to WAN (requires mTLS if true)";
-              };
-              backendHost = lib.mkOption {
-                type = lib.types.str;
-                description = "Backend host IP address for ${name}";
-              };
-              backendPort = lib.mkOption {
-                type = lib.types.port;
-                description = "Backend port for ${name}";
-              };
-              backendSSL = lib.mkOption {
-                type = lib.types.bool;
-                default = false;
-                description = "Whether the backend uses SSL";
-              };
-            };
-          }
-        )
-      );
-      default = { };
-      example = {
-        immich = {
-          domain = "immich.domanin.tld";
-          public = true;
-          backendHost = "10.0.0.2";
-          backendPort = 2283;
-          backendSSL = false;
-        };
-        scrutiny = {
-          domain = "scrutiny.domain.tld";
-          public = false;
-          backendHost = "0.0.0.0";
-          backendPort = 5532;
-          backendSSL = false;
-        };
-      };
-    };
-
     # Declarative users
     users = lib.mkOption {
       description = "Declarative user definitions for this host";

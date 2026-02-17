@@ -37,12 +37,41 @@
     gid = 999;
   };
 
-  hostSpec.domains.immich = {
+  custom.reverseProxy.virtualHosts.immich = {
     domain = "immich.${config.hostSpec.domain}";
-    public = true;
     backendHost = "10.0.0.2";
     backendPort = 2283;
     backendSSL = false;
+  };
+
+  # OIDC client secret for Kanidm OAuth2
+  sops.secrets."immich/oidc-client-secret" = {
+    sopsFile = "${builtins.toString inputs.nix-secrets}/sops/shared.yaml";
+    owner = "root";
+    group = "kanidm";
+    mode = "0440";
+  };
+
+  # OAuth2 client registration (consumed by kanidm.nix)
+  custom.kanidm.oauthClients.immich = {
+    displayName = "Immich";
+    originUrl = [
+      "https://immich.${config.hostSpec.domain}/auth/login"
+      "https://immich.${config.hostSpec.domain}/api/oauth/mobile-redirect"
+      "https://immich.${config.hostSpec.domain}/user-settings"
+      "app.immich:///oauth-callback"
+      "app.immich://oauth-callback"
+      "app.immich:/oauth-callback"
+      "com.alextran.immich://oauth-callback"
+    ];
+    originLanding = "https://immich.${config.hostSpec.domain}/";
+    secretFile = config.sops.secrets."immich/oidc-client-secret".path;
+    enableLegacyCrypto = true; # Immich still uses RS256 instead of ES256
+    scopeMap.immich_users = [
+      "openid"
+      "email"
+      "profile"
+    ];
   };
 
   hostSpec.networking.containerNetworks.immich.bridge = lib.mkDefault "immich-bridge";
@@ -142,7 +171,7 @@
                 buttonText = "Login";
                 clientId = "immich";
                 clientSecret._secret = hostConfig.sops.secrets."immich/oidc-client-secret".path;
-                issuerUrl = "https://auth.${config.hostSpec.domain}/oauth2/openid/immich";
+                issuerUrl = "https://${hostConfig.custom.reverseProxy.virtualHosts.auth.domain}/oauth2/openid/immich";
                 scope = "openid profile email";
                 signingAlgorithm = "RS256";
 
@@ -152,7 +181,7 @@
                 enabled = false; # Disable password login when OIDC is enabled
               };
               server = {
-                externalDomain = "https://${hostConfig.hostSpec.domains.immich.domain}";
+                externalDomain = "https://${hostConfig.custom.reverseProxy.virtualHosts.immich.domain}";
               };
             };
           };

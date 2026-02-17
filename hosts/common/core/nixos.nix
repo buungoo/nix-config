@@ -9,6 +9,7 @@
 {
   imports = [
     inputs.sops-nix.nixosModules.sops
+    (lib.custom.relativeToRoot "modules/nixos")
     (lib.custom.relativeToRoot "hosts/common/users/declarative-users.nix")
     (lib.custom.relativeToRoot "hosts/common/core/sops-nixos.nix")
   ];

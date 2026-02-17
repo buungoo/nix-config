@@ -29,9 +29,8 @@
     gid = 5000;
   };
 
-  hostSpec.domains.jellyfin = {
+  custom.reverseProxy.virtualHosts.jellyfin = {
     domain = "jellyfin.${config.hostSpec.domain}";
-    public = true;
     backendHost = "10.0.1.2";
     backendPort = 8096;
     backendSSL = false;

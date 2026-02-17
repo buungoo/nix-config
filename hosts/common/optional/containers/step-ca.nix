@@ -75,12 +75,36 @@
     gid = 986;
   };
 
-  hostSpec.domains.ca = {
+  custom.reverseProxy.virtualHosts.ca = {
     domain = "ca.${config.hostSpec.domain}";
-    public = false;
+    proxyWan = false;
     backendHost = "10.0.9.2";
     backendPort = 3000; # step-ca enrollment service
     backendSSL = false;
+  };
+
+  # OAuth2 client registrations (consumed by kanidm.nix)
+  custom.kanidm.oauthClients.step-ca = {
+    displayName = "step-ca Certificate Authority";
+    originUrl = "https://ca.${config.hostSpec.domain}/oidc/callback";
+    originLanding = "https://ca.${config.hostSpec.domain}/";
+    secretFile = config.sops.secrets."step-ca/oidc-client-secret".path;
+    scopeMap.step_ca_users = [
+      "openid"
+      "email"
+      "profile"
+    ];
+  };
+  custom.kanidm.oauthClients.step-ca-enroll = {
+    displayName = "Get Client Certificate";
+    originUrl = "https://ca.${config.hostSpec.domain}/callback";
+    originLanding = "https://ca.${config.hostSpec.domain}/enroll";
+    secretFile = config.sops.secrets."step-ca-enroll/oidc-client-secret-raw".path;
+    scopeMap.step_ca_enroll_users = [
+      "openid"
+      "email"
+      "profile"
+    ];
   };
 
   hostSpec.networking.containerNetworks.ca.bridge = lib.mkDefault "ca-bridge";
@@ -106,7 +130,7 @@
         # (no bind mount = /var/lib/nixos-containers/step-ca/var/lib/step-ca-db on host)
         # Mount ACME certificates for step-ca web UI HTTPS
         "/etc/ssl/certs/step-ca" = {
-          hostPath = hostConfig.security.acme.certs."ca.${hostConfig.hostSpec.domain}".directory;
+          hostPath = hostConfig.security.acme.certs."${hostConfig.custom.reverseProxy.virtualHosts.ca.domain}".directory;
           isReadOnly = true;
         };
         # Mount SOPS secrets
@@ -157,7 +181,7 @@
               key = "/var/lib/step-ca/.step/secrets/intermediate_ca_key";
 
               # DNS names that step-ca will accept requests for
-              dnsNames = [ "ca.${hostConfig.hostSpec.domain}" ];
+              dnsNames = [ hostConfig.custom.reverseProxy.virtualHosts.ca.domain ];
 
               # Enable debug logging
               logger = {
@@ -200,7 +224,7 @@
                   {
                     type = "OIDC";
                     name = "kanidm";
-                    configurationEndpoint = "https://auth.${hostConfig.hostSpec.domain}/oauth2/openid/step-ca/.well-known/openid-configuration";
+                    configurationEndpoint = "https://${hostConfig.custom.reverseProxy.virtualHosts.auth.domain}/oauth2/openid/step-ca/.well-known/openid-configuration";
                     clientID = "step-ca";
                     clientSecret = "$OIDC_CLIENT_SECRET"; # Will be replaced from SOPS
                     admins = [ hostConfig.hostSpec.users.bungo.userEmail ];
@@ -220,7 +244,7 @@
                   {
                     type = "OIDC";
                     name = "kanidm-enroll";
-                    configurationEndpoint = "https://auth.${hostConfig.hostSpec.domain}/oauth2/openid/step-ca-enroll/.well-known/openid-configuration";
+                    configurationEndpoint = "https://${hostConfig.custom.reverseProxy.virtualHosts.auth.domain}/oauth2/openid/step-ca-enroll/.well-known/openid-configuration";
                     clientID = "step-ca-enroll";
                     clientSecret = "$OIDC_CLIENT_SECRET_ENROLL"; # Will be replaced from SOPS
                     # No domain restriction - allow any authenticated user
@@ -279,9 +303,9 @@
             wantedBy = [ "multi-user.target" ];
 
             environment = {
-              KANIDM_URL = "https://auth.${hostConfig.hostSpec.domain}";
+              KANIDM_URL = "https://${hostConfig.custom.reverseProxy.virtualHosts.auth.domain}";
               OIDC_CLIENT_ID = "step-ca-enroll";
-              REDIRECT_URL = "https://ca.${hostConfig.hostSpec.domain}/callback";
+              REDIRECT_URL = "https://${hostConfig.custom.reverseProxy.virtualHosts.ca.domain}/callback";
               STEP_CA_URL = "https://127.0.0.1:9443";
               BIND_ADDR = "0.0.0.0:3000";
             };
@@ -351,7 +375,7 @@
               # - Intermediate password from SOPS secret
               ${pkgs.step-cli}/bin/step ca init \
                 --name="${hostConfig.hostSpec.domain} Internal CA" \
-                --dns="ca.${hostConfig.hostSpec.domain}" \
+                --dns="${hostConfig.custom.reverseProxy.virtualHosts.ca.domain}" \
                 --address=":9443" \
                 --provisioner="admin" \
                 --password-file=${hostConfig.sops.secrets."step-ca/intermediate-password".path} \
@@ -397,7 +421,7 @@
               echo "Client key saved to: $OUTPUT_DIR/client.key"
               echo ""
               echo "To use with curl:"
-              echo "  curl --cert $OUTPUT_DIR/client.crt --key $OUTPUT_DIR/client.key https://immich.${hostConfig.hostSpec.domain}"
+              echo "  curl --cert $OUTPUT_DIR/client.crt --key $OUTPUT_DIR/client.key https://${hostConfig.custom.reverseProxy.virtualHosts.immich.domain}"
             '';
             mode = "0755";
           };
