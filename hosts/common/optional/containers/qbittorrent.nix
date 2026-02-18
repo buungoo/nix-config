@@ -42,7 +42,7 @@ in
   hostSpec.networking.containerNetworks.arr.containers.qbittorrent = lib.mkDefault 7;
 
   systemd.tmpfiles.rules = [
-    "d /mnt/storage/qbittorrent 0755 ${toString uid} ${toString gid} -"
+    "d /var/lib/qbittorrent 0755 ${toString uid} ${toString gid} -"
     "d /mnt/storage/arr/downloads 2775 ${toString uid} ${toString mediaGid} -"
     "d /mnt/storage/arr/downloads/incomplete 2775 ${toString uid} ${toString mediaGid} -"
     "d /mnt/storage/arr/downloads/complete 2775 ${toString uid} ${toString mediaGid} -"
@@ -63,10 +63,11 @@ in
     {
 
       autoStart = true;
+      ephemeral = true;
 
       bindMounts = {
         "/var/lib/qbittorrent" = {
-          hostPath = "/mnt/storage/qbittorrent";
+          hostPath = "/var/lib/qbittorrent";
           isReadOnly = false;
         };
         "/arr" = {

@@ -29,7 +29,7 @@ in
   hostSpec.networking.containerNetworks.arr.containers.prowlarr = lib.mkDefault 6;
 
   systemd.tmpfiles.rules = [
-    "d /mnt/storage/prowlarr 0755 ${toString uid} ${toString gid} -"
+    "d /var/lib/prowlarr 0755 ${toString uid} ${toString gid} -"
   ];
 
   containers.prowlarr =
@@ -38,10 +38,11 @@ in
     in
     {
       autoStart = true;
+      ephemeral = true;
 
       bindMounts = {
         "/var/lib/prowlarr" = {
-          hostPath = "/mnt/storage/prowlarr";
+          hostPath = "/var/lib/prowlarr";
           isReadOnly = false;
         };
       };

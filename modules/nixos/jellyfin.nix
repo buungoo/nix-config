@@ -218,7 +218,7 @@ in
     # --- Container definition ---
     containers.jellyfin = {
       autoStart = true;
-      ephemeral = false;
+      ephemeral = true;
 
       bindMounts = lib.mkMerge [
         # Application data

@@ -17,6 +17,8 @@
 #      Solution: Remove old data from /var/lib/acme/.lego/<domain>/
 #   2. Certificate from wrong ACME account
 #      Solution: Remove /var/lib/acme/.lego/<domain>/ and restart acme-order-renew
+#   3. After adding a new virtualHost, HAProxy may need a manual restart to pick up the new certs:
+#      sudo systemctl restart haproxy-cert-combine.service && sudo systemctl restart haproxy.service
 #
 {
   config,

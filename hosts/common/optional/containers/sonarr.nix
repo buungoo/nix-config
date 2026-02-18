@@ -19,6 +19,7 @@ let
   uid = 10200;
   gid = 10200;
   mediaGid = 5000;
+  net = lib.custom.mkContainerNetworkConfig config "arr" "sonarr";
 in
 {
   imports = [
@@ -40,21 +41,26 @@ in
   hostSpec.networking.containerNetworks.arr.gateway = lib.mkDefault "10.0.1.1";
   hostSpec.networking.containerNetworks.arr.containers.sonarr = lib.mkDefault 4;
 
+  custom.reverseProxy.virtualHosts.sonarr = {
+    domain = "sonarr.${config.hostSpec.domain}";
+    backendHost = net.containerIP;
+    backendPort = 8989;
+    backendSSL = false;
+  };
+
   systemd.tmpfiles.rules = [
-    "d /mnt/storage/sonarr 0755 ${toString uid} ${toString gid} -"
+    "d /var/lib/sonarr 0755 ${toString uid} ${toString gid} -"
     "d /mnt/storage/arr/media/tvshows 0775 ${toString uid} ${toString mediaGid} -"
   ];
 
   containers.sonarr =
-    let
-      net = lib.custom.mkContainerNetworkConfig config "arr" "sonarr";
-    in
     {
       autoStart = true;
+      ephemeral = true;
 
       bindMounts = {
         "/var/lib/sonarr" = {
-          hostPath = "/mnt/storage/sonarr";
+          hostPath = "/var/lib/sonarr";
           isReadOnly = false;
         };
         "/arr" = {

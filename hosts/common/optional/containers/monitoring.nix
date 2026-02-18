@@ -23,6 +23,7 @@
     in
     {
       autoStart = true;
+      ephemeral = true;
 
       bindMounts = {
         "/var/lib/prometheus2" = {

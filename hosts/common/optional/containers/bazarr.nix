@@ -33,7 +33,7 @@ in
   hostSpec.networking.containerNetworks.arr.containers.bazarr = lib.mkDefault 8;
 
   systemd.tmpfiles.rules = [
-    "d /mnt/storage/bazarr 0755 ${toString uid} ${toString gid} -"
+    "d /var/lib/bazarr 0755 ${toString uid} ${toString gid} -"
   ];
 
   containers.bazarr =
@@ -42,10 +42,11 @@ in
     in
     {
       autoStart = true;
+      ephemeral = true;
 
       bindMounts = {
         "/var/lib/bazarr" = {
-          hostPath = "/mnt/storage/bazarr";
+          hostPath = "/var/lib/bazarr";
           isReadOnly = false;
         };
         # Bazarr only needs media access (for subtitles), not torrents/downloads

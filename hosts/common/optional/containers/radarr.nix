@@ -19,6 +19,7 @@ let
   uid = 10300;
   gid = 10300;
   mediaGid = 5000;
+  net = lib.custom.mkContainerNetworkConfig config "arr" "radarr";
 in
 {
   imports = [
@@ -40,21 +41,26 @@ in
   hostSpec.networking.containerNetworks.arr.gateway = lib.mkDefault "10.0.1.1";
   hostSpec.networking.containerNetworks.arr.containers.radarr = lib.mkDefault 5;
 
+  custom.reverseProxy.virtualHosts.radarr = {
+    domain = "radarr.${config.hostSpec.domain}";
+    backendHost = net.containerIP;
+    backendPort = 7878;
+    backendSSL = false;
+  };
+
   systemd.tmpfiles.rules = [
-    "d /mnt/storage/radarr 0755 ${toString uid} ${toString gid} -"
+    "d /var/lib/radarr 0755 ${toString uid} ${toString gid} -"
     "d /mnt/storage/arr/media/movies 0775 ${toString uid} ${toString mediaGid} -"
   ];
 
   containers.radarr =
-    let
-      net = lib.custom.mkContainerNetworkConfig config "arr" "radarr";
-    in
     {
       autoStart = true;
+      ephemeral = true;
 
       bindMounts = {
         "/var/lib/radarr" = {
-          hostPath = "/mnt/storage/radarr";
+          hostPath = "/var/lib/radarr";
           isReadOnly = false;
         };
         "/arr" = {

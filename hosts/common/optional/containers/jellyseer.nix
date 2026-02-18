@@ -29,7 +29,7 @@ in
   hostSpec.networking.containerNetworks.arr.containers.jellyseer = lib.mkDefault 3;
 
   systemd.tmpfiles.rules = [
-    "d /mnt/storage/jellyseer 0755 ${toString uid} ${toString gid} -"
+    "d /var/lib/jellyseerr 0755 ${toString uid} ${toString gid} -"
   ];
 
   containers.jellyseer =
@@ -42,7 +42,7 @@ in
 
       bindMounts = {
         "/var/lib/jellyseerr" = {
-          hostPath = "/mnt/storage/jellyseer";
+          hostPath = "/var/lib/jellyseerr";
           isReadOnly = false;
         };
         "/media/movies" = {
