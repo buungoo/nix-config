@@ -6,24 +6,31 @@
   ...
 }:
 
+let
+  uid = 10600;
+  gid = 10600;
+in
 {
   imports = [
     (./networking.nix)
   ];
 
+  # --- Host user/group (matches container for bind mount ownership) ---
   users.users.jellyseerr = {
     isSystemUser = true;
     group = "jellyseerr";
-    uid = 276;
+    inherit uid;
   };
-  users.groups.jellyseerr = {
-    gid = 276;
-  };
+  users.groups.jellyseerr.gid = gid;
 
   hostSpec.networking.containerNetworks.arr.bridge = lib.mkDefault "arr-bridge";
   hostSpec.networking.containerNetworks.arr.subnet = lib.mkDefault "10.0.1.0/24";
   hostSpec.networking.containerNetworks.arr.gateway = lib.mkDefault "10.0.1.1";
   hostSpec.networking.containerNetworks.arr.containers.jellyseer = lib.mkDefault 3;
+
+  systemd.tmpfiles.rules = [
+    "d /mnt/storage/jellyseer 0755 ${toString uid} ${toString gid} -"
+  ];
 
   containers.jellyseer =
     let
@@ -39,11 +46,11 @@
           isReadOnly = false;
         };
         "/media/movies" = {
-          hostPath = "/mnt/storage/media/movies";
+          hostPath = "/mnt/storage/arr/media/movies";
           isReadOnly = true;
         };
         "/media/tvshows" = {
-          hostPath = "/mnt/storage/media/tvshows";
+          hostPath = "/mnt/storage/arr/media/tvshows";
           isReadOnly = true;
         };
       };
@@ -82,33 +89,35 @@
             };
           };
 
+          # --- Container user/group (matches host) ---
           users.users.jellyseerr = {
             isSystemUser = true;
+            inherit uid;
             group = "jellyseerr";
             home = "/var/lib/jellyseerr";
           };
-          users.groups.jellyseerr = { };
+          users.groups.jellyseerr.gid = gid;
 
           networking.firewall.allowedTCPPorts = [ 5055 ];
 
           systemd.tmpfiles.rules = [
-            "d /var/lib/jellyseerr 0755 jellyseerr jellyseerr -"
-            "d /media 0755 root root -"
+            "d /var/lib/jellyseerr 0755 ${toString uid} ${toString gid} -"
           ];
         }
       ];
     };
 
-  systemd = lib.mkMerge [
-    (lib.custom.mkContainerSystemd "jellyseer" {
-      dependsOn = [
-        "sonarr"
-        "radarr"
-      ];
-    })
-  ];
-
+  systemd.services."container@jellyseer" = {
+    wants = [
+      "network-online.target"
+      "container@sonarr.service"
+      "container@radarr.service"
+    ];
+    after = [
+      "network-online.target"
+      "systemd-tmpfiles-setup.service"
+      "container@sonarr.service"
+      "container@radarr.service"
+    ];
+  };
 }
-// (lib.custom.mkContainerDirs "jellyseer" [
-  "/mnt/storage/jellyseer"
-])

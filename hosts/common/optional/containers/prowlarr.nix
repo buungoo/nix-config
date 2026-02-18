@@ -6,15 +6,31 @@
   ...
 }:
 
+let
+  uid = 10700;
+  gid = 10700;
+in
 {
   imports = [
     (./networking.nix)
   ];
 
+  # --- Host user/group (matches container for bind mount ownership) ---
+  users.users.prowlarr = {
+    isSystemUser = true;
+    group = "prowlarr";
+    inherit uid;
+  };
+  users.groups.prowlarr.gid = gid;
+
   hostSpec.networking.containerNetworks.arr.bridge = lib.mkDefault "arr-bridge";
   hostSpec.networking.containerNetworks.arr.subnet = lib.mkDefault "10.0.1.0/24";
   hostSpec.networking.containerNetworks.arr.gateway = lib.mkDefault "10.0.1.1";
   hostSpec.networking.containerNetworks.arr.containers.prowlarr = lib.mkDefault 6;
+
+  systemd.tmpfiles.rules = [
+    "d /mnt/storage/prowlarr 0755 ${toString uid} ${toString gid} -"
+  ];
 
   containers.prowlarr =
     let
@@ -60,27 +76,29 @@
             };
           };
 
+          # --- Container user/group (matches host) ---
           users.users.prowlarr = {
             isSystemUser = true;
+            inherit uid;
             group = "prowlarr";
             home = "/var/lib/prowlarr";
           };
-          users.groups.prowlarr = { };
+          users.groups.prowlarr.gid = gid;
 
           networking.firewall.allowedTCPPorts = [ 9696 ];
 
           systemd.tmpfiles.rules = [
-            "d /var/lib/prowlarr 0755 prowlarr prowlarr -"
+            "d /var/lib/prowlarr 0755 ${toString uid} ${toString gid} -"
           ];
         }
       ];
     };
 
-  systemd = lib.mkMerge [
-    (lib.custom.mkContainerSystemd "prowlarr" { })
-  ];
-
+  systemd.services."container@prowlarr" = {
+    wants = [ "network-online.target" ];
+    after = [
+      "network-online.target"
+      "systemd-tmpfiles-setup.service"
+    ];
+  };
 }
-// (lib.custom.mkContainerDirs "prowlarr" [
-  "/mnt/storage/prowlarr"
-])

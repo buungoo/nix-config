@@ -7,15 +7,34 @@
   ...
 }:
 
+let
+  uid = 10500;
+  gid = 10500;
+  mediaGid = 5000;
+in
 {
   imports = [
     (./networking.nix)
   ];
 
+  # --- Host user/group (matches container for bind mount ownership) ---
+  users.users.bazarr = {
+    isSystemUser = true;
+    group = "bazarr";
+    extraGroups = [ "media" ];
+    inherit uid;
+  };
+  users.groups.bazarr.gid = gid;
+  users.groups.media.gid = mediaGid;
+
   hostSpec.networking.containerNetworks.arr.bridge = lib.mkDefault "arr-bridge";
   hostSpec.networking.containerNetworks.arr.subnet = lib.mkDefault "10.0.1.0/24";
   hostSpec.networking.containerNetworks.arr.gateway = lib.mkDefault "10.0.1.1";
   hostSpec.networking.containerNetworks.arr.containers.bazarr = lib.mkDefault 8;
+
+  systemd.tmpfiles.rules = [
+    "d /mnt/storage/bazarr 0755 ${toString uid} ${toString gid} -"
+  ];
 
   containers.bazarr =
     let
@@ -29,8 +48,9 @@
           hostPath = "/mnt/storage/bazarr";
           isReadOnly = false;
         };
-        "/storage" = {
-          hostPath = "/mnt/storage";
+        # Bazarr only needs media access (for subtitles), not torrents/downloads
+        "/media" = {
+          hostPath = "/mnt/storage/arr/media";
           isReadOnly = false;
         };
       };
@@ -70,39 +90,39 @@
             };
           };
 
+          # --- Container user/group (matches host) ---
           users.users.bazarr = {
             isSystemUser = true;
+            inherit uid;
             group = "bazarr";
             extraGroups = [ "media" ];
             home = "/var/lib/bazarr";
           };
-          users.groups.bazarr = { };
-          users.groups.media = {
-            gid = 5000;
-          };
+          users.groups.bazarr.gid = gid;
+          users.groups.media.gid = mediaGid;
 
           networking.firewall.allowedTCPPorts = [ 6767 ];
 
           systemd.tmpfiles.rules = [
-            "d /var/lib/bazarr 0755 bazarr bazarr -"
-            "d /storage/media 0755 root root -"
-            "d /storage/media/movies 0775 bazarr media -"
-            "d /storage/media/tvshows 0775 bazarr media -"
+            "d /var/lib/bazarr 0755 ${toString uid} ${toString gid} -"
+            "d /media/movies 0775 ${toString uid} ${toString mediaGid} -"
+            "d /media/tvshows 0775 ${toString uid} ${toString mediaGid} -"
           ];
         }
       ];
     };
 
-  systemd = lib.mkMerge [
-    (lib.custom.mkContainerSystemd "bazarr" {
-      dependsOn = [
-        "sonarr"
-        "radarr"
-      ];
-    })
-  ];
-
+  systemd.services."container@bazarr" = {
+    wants = [
+      "network-online.target"
+      "container@sonarr.service"
+      "container@radarr.service"
+    ];
+    after = [
+      "network-online.target"
+      "systemd-tmpfiles-setup.service"
+      "container@sonarr.service"
+      "container@radarr.service"
+    ];
+  };
 }
-// (lib.custom.mkContainerDirs "bazarr" [
-  "/mnt/storage/bazarr"
-])

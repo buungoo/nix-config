@@ -1,6 +1,6 @@
 # Radarr Configuration Steps (http://10.0.1.5:7878)
 #	1. Settings → Media Management → Root Folders
-#		Add: /mnt/storage/media/movies
+#		Add: /arr/media/movies
 #	2. Settings → Download Clients → Add qBittorrent
 #		Host: 10.0.1.7, Port: 8080, Category: movies
 #	3. Settings → Media Management
@@ -15,28 +15,35 @@
   ...
 }:
 
+let
+  uid = 10300;
+  gid = 10300;
+  mediaGid = 5000;
+in
 {
   imports = [
     (./networking.nix)
   ];
 
+  # --- Host user/group (matches container for bind mount ownership) ---
   users.users.radarr = {
     isSystemUser = true;
     group = "radarr";
     extraGroups = [ "media" ];
-    uid = 275;
+    inherit uid;
   };
-  users.groups.radarr = {
-    gid = 275;
-  };
-  users.groups.media = {
-    gid = 5000;
-  };
+  users.groups.radarr.gid = gid;
+  users.groups.media.gid = mediaGid;
 
   hostSpec.networking.containerNetworks.arr.bridge = lib.mkDefault "arr-bridge";
   hostSpec.networking.containerNetworks.arr.subnet = lib.mkDefault "10.0.1.0/24";
   hostSpec.networking.containerNetworks.arr.gateway = lib.mkDefault "10.0.1.1";
   hostSpec.networking.containerNetworks.arr.containers.radarr = lib.mkDefault 5;
+
+  systemd.tmpfiles.rules = [
+    "d /mnt/storage/radarr 0755 ${toString uid} ${toString gid} -"
+    "d /mnt/storage/arr/media/movies 0775 ${toString uid} ${toString mediaGid} -"
+  ];
 
   containers.radarr =
     let
@@ -50,8 +57,8 @@
           hostPath = "/mnt/storage/radarr";
           isReadOnly = false;
         };
-        "/storage" = {
-          hostPath = "/mnt/storage";
+        "/arr" = {
+          hostPath = "/mnt/storage/arr";
           isReadOnly = false;
         };
       };
@@ -76,33 +83,29 @@
             dataDir = "/var/lib/radarr";
           };
 
-          users.groups.media = {
-            gid = 5000;
+          # --- Container user/group (matches host) ---
+          # mkForce needed: services.radarr hardcodes uid 275
+          users.users.radarr = {
+            isSystemUser = true;
+            uid = lib.mkForce uid;
+            extraGroups = [ "media" ];
           };
-
-          users.users.radarr.extraGroups = [ "media" ];
+          users.groups.radarr.gid = lib.mkForce gid;
+          users.groups.media.gid = mediaGid;
 
           systemd.tmpfiles.rules = [
-            "d /var/lib/radarr 0755 radarr media -"
-            "d /storage/downloads 0775 radarr media -"
-            "d /storage/torrents 0775 radarr media -"
-            "d /storage/media/movies 0775 radarr media -"
+            "d /var/lib/radarr 0755 ${toString uid} ${toString gid} -"
+            "d /arr/media/movies 0775 ${toString uid} ${toString mediaGid} -"
           ];
         }
       ];
     };
 
-  systemd = lib.mkMerge [
-    (lib.custom.mkContainerSystemd "radarr" { })
-  ];
-
+  systemd.services."container@radarr" = {
+    wants = [ "network-online.target" ];
+    after = [
+      "network-online.target"
+      "systemd-tmpfiles-setup.service"
+    ];
+  };
 }
-// (lib.custom.mkContainerDirs "radarr" [
-  "/mnt/storage/radarr"
-  {
-    path = "/mnt/storage/media/movies";
-    owner = "275";
-    group = "5000";
-    mode = "0775";
-  }
-])

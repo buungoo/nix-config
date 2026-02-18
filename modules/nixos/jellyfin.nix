@@ -132,7 +132,7 @@ in
           paths = [ "/media/movies" ];
         }
         {
-          name = "TVShows";
+          name = "TV Shows";
           collectionType = "tvshows";
           paths = [ "/media/tvshows" ];
         }
@@ -143,8 +143,8 @@ in
     mediaMounts = lib.mkOption {
       type = lib.types.attrsOf lib.types.str;
       default = {
-        "/media/movies" = "/mnt/storage/media/movies";
-        "/media/tvshows" = "/mnt/storage/media/tvshows";
+        "/media/movies" = "/mnt/storage/arr/media/movies";
+        "/media/tvshows" = "/mnt/storage/arr/media/tvshows";
       };
       description = "Container path → host path mappings for media directories (read-only bind mounts)";
     };

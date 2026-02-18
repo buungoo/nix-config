@@ -8,6 +8,11 @@
   ...
 }:
 
+let
+  uid = 10400;
+  gid = 10400;
+  mediaGid = 5000;
+in
 {
   imports = [
     (./networking.nix)
@@ -21,10 +26,34 @@
     mode = "0644";
   };
 
+  # --- Host user/group (matches container for bind mount ownership) ---
+  users.users.qbittorrent = {
+    isSystemUser = true;
+    group = "qbittorrent";
+    extraGroups = [ "media" ];
+    inherit uid;
+  };
+  users.groups.qbittorrent.gid = gid;
+  users.groups.media.gid = mediaGid;
+
   hostSpec.networking.containerNetworks.arr.bridge = lib.mkDefault "arr-bridge";
   hostSpec.networking.containerNetworks.arr.subnet = lib.mkDefault "10.0.1.0/24";
   hostSpec.networking.containerNetworks.arr.gateway = lib.mkDefault "10.0.1.1";
   hostSpec.networking.containerNetworks.arr.containers.qbittorrent = lib.mkDefault 7;
+
+  systemd.tmpfiles.rules = [
+    "d /mnt/storage/qbittorrent 0755 ${toString uid} ${toString gid} -"
+    "d /mnt/storage/arr/downloads 2775 ${toString uid} ${toString mediaGid} -"
+    "d /mnt/storage/arr/downloads/incomplete 2775 ${toString uid} ${toString mediaGid} -"
+    "d /mnt/storage/arr/downloads/complete 2775 ${toString uid} ${toString mediaGid} -"
+    "d /mnt/storage/arr/downloads/complete/movies 2775 ${toString uid} ${toString mediaGid} -"
+    "d /mnt/storage/arr/downloads/complete/tv 2775 ${toString uid} ${toString mediaGid} -"
+    "d /mnt/storage/arr/torrents 2775 ${toString uid} ${toString mediaGid} -"
+    "d /mnt/storage/arr/torrents/movies 2775 ${toString uid} ${toString mediaGid} -"
+    "d /mnt/storage/arr/torrents/tv 2775 ${toString uid} ${toString mediaGid} -"
+    "d /mnt/storage/arr/torrents/music 2775 ${toString uid} ${toString mediaGid} -"
+    "d /mnt/storage/arr/torrents/books 2775 ${toString uid} ${toString mediaGid} -"
+  ];
 
   containers.qbittorrent =
     let
@@ -40,8 +69,8 @@
           hostPath = "/mnt/storage/qbittorrent";
           isReadOnly = false;
         };
-        "/storage" = {
-          hostPath = "/mnt/storage";
+        "/arr" = {
+          hostPath = "/mnt/storage/arr";
           isReadOnly = false;
         };
         "/run/secrets" = {
@@ -102,107 +131,41 @@
             };
           };
 
+          # --- Container user/group (matches host) ---
           users.users.qbittorrent = {
             isSystemUser = true;
-            uid = lib.mkForce 5000;
-            group = "media";
+            inherit uid;
+            group = "qbittorrent";
+            extraGroups = [ "media" ];
             home = "/var/lib/qbittorrent";
             createHome = true;
           };
-          users.groups.qbittorrent = { };
-          users.groups.media = {
-            gid = 5000;
-          };
+          users.groups.qbittorrent.gid = gid;
+          users.groups.media.gid = mediaGid;
 
           environment.systemPackages = with pkgs; [
             qbittorrent-nox
           ];
 
           systemd.tmpfiles.rules = [
-            "d /storage/downloads 2775 qbittorrent media -"
-            "d /storage/downloads/incomplete 2775 qbittorrent media -"
-            "d /storage/torrents 2775 qbittorrent media -"
-            "d /storage/torrents/movies 2775 qbittorrent media -"
-            "d /storage/torrents/tv 2775 qbittorrent media -"
-            "d /storage/torrents/music 2775 qbittorrent media -"
-            "d /storage/torrents/books 2775 qbittorrent media -"
+            "d /var/lib/qbittorrent 0755 ${toString uid} ${toString gid} -"
+            "d /arr/downloads 2775 ${toString uid} ${toString mediaGid} -"
+            "d /arr/downloads/incomplete 2775 ${toString uid} ${toString mediaGid} -"
+            "d /arr/torrents 2775 ${toString uid} ${toString mediaGid} -"
+            "d /arr/torrents/movies 2775 ${toString uid} ${toString mediaGid} -"
+            "d /arr/torrents/tv 2775 ${toString uid} ${toString mediaGid} -"
+            "d /arr/torrents/music 2775 ${toString uid} ${toString mediaGid} -"
+            "d /arr/torrents/books 2775 ${toString uid} ${toString mediaGid} -"
           ];
         }
       ];
     };
 
-  systemd = lib.mkMerge [
-    (lib.custom.mkContainerSystemd "qbittorrent" { })
-  ];
-
+  systemd.services."container@qbittorrent" = {
+    wants = [ "network-online.target" ];
+    after = [
+      "network-online.target"
+      "systemd-tmpfiles-setup.service"
+    ];
+  };
 }
-// (lib.custom.mkContainerDirs "qbittorrent" [
-  {
-    path = "/mnt/storage/qbittorrent";
-    owner = "5000";
-    group = "5000";
-    mode = "0755";
-  }
-  # Use shared media group (GID 5000) for all media services
-  {
-    path = "/mnt/storage/downloads";
-    owner = "5000";
-    group = "5000";
-    mode = "0775";
-  }
-  {
-    path = "/mnt/storage/downloads/incomplete";
-    owner = "5000";
-    group = "5000";
-    mode = "0775";
-  }
-  {
-    path = "/mnt/storage/downloads/complete";
-    owner = "5000";
-    group = "5000";
-    mode = "0775";
-  }
-  {
-    path = "/mnt/storage/downloads/complete/movies";
-    owner = "5000";
-    group = "5000";
-    mode = "0775";
-  }
-  {
-    path = "/mnt/storage/downloads/complete/tv";
-    owner = "5000";
-    group = "5000";
-    mode = "0775";
-  }
-  # TRaSH guides torrents structure
-  {
-    path = "/mnt/storage/torrents";
-    owner = "5000";
-    group = "5000";
-    mode = "0775";
-  }
-  {
-    path = "/mnt/storage/torrents/movies";
-    owner = "5000";
-    group = "5000";
-    mode = "0775";
-  }
-  {
-    path = "/mnt/storage/torrents/tv";
-    owner = "5000";
-    group = "5000";
-    mode = "0775";
-  }
-  {
-    path = "/mnt/storage/torrents/music";
-    owner = "5000";
-    group = "5000";
-    mode = "0775";
-  }
-  {
-    path = "/mnt/storage/torrents/books";
-    owner = "5000";
-    group = "5000";
-    mode = "0775";
-  }
-])

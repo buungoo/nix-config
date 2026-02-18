@@ -1,6 +1,6 @@
 # Sonarr Configuration Steps (http://10.0.1.4:8989)
 #	1. Settings → Media Management → Root Folders
-#		Add: /mnt/storage/media/tvshows
+#		Add: /arr/media/tvshows
 #	2. Settings → Download Clients → Add qBittorrent
 #		Host: 10.0.1.7, Port: 8080, Category: tv
 #	3. Settings → Media Management
@@ -15,28 +15,35 @@
   ...
 }:
 
+let
+  uid = 10200;
+  gid = 10200;
+  mediaGid = 5000;
+in
 {
   imports = [
     (./networking.nix)
   ];
 
+  # --- Host user/group (matches container for bind mount ownership) ---
   users.users.sonarr = {
     isSystemUser = true;
     group = "sonarr";
     extraGroups = [ "media" ];
-    uid = 274;
+    inherit uid;
   };
-  users.groups.sonarr = {
-    gid = 274;
-  };
-  users.groups.media = {
-    gid = 5000;
-  };
+  users.groups.sonarr.gid = gid;
+  users.groups.media.gid = mediaGid;
 
   hostSpec.networking.containerNetworks.arr.bridge = lib.mkDefault "arr-bridge";
   hostSpec.networking.containerNetworks.arr.subnet = lib.mkDefault "10.0.1.0/24";
   hostSpec.networking.containerNetworks.arr.gateway = lib.mkDefault "10.0.1.1";
   hostSpec.networking.containerNetworks.arr.containers.sonarr = lib.mkDefault 4;
+
+  systemd.tmpfiles.rules = [
+    "d /mnt/storage/sonarr 0755 ${toString uid} ${toString gid} -"
+    "d /mnt/storage/arr/media/tvshows 0775 ${toString uid} ${toString mediaGid} -"
+  ];
 
   containers.sonarr =
     let
@@ -50,8 +57,8 @@
           hostPath = "/mnt/storage/sonarr";
           isReadOnly = false;
         };
-        "/storage" = {
-          hostPath = "/mnt/storage";
+        "/arr" = {
+          hostPath = "/mnt/storage/arr";
           isReadOnly = false;
         };
       };
@@ -91,33 +98,29 @@
             };
           };
 
-          users.groups.media = {
-            gid = 5000;
+          # --- Container user/group (matches host) ---
+          # mkForce needed: services.sonarr hardcodes uid 274
+          users.users.sonarr = {
+            isSystemUser = true;
+            uid = lib.mkForce uid;
+            extraGroups = [ "media" ];
           };
-
-          users.users.sonarr.extraGroups = [ "media" ];
+          users.groups.sonarr.gid = lib.mkForce gid;
+          users.groups.media.gid = mediaGid;
 
           systemd.tmpfiles.rules = [
-            "d /var/lib/sonarr 0755 sonarr media -"
-            "d /storage/downloads 0775 sonarr media -"
-            "d /storage/torrents 0775 sonarr media -"
-            "d /storage/media/tvshows 0775 sonarr media -"
+            "d /var/lib/sonarr 0755 ${toString uid} ${toString gid} -"
+            "d /arr/media/tvshows 0775 ${toString uid} ${toString mediaGid} -"
           ];
         }
       ];
     };
 
-  systemd = lib.mkMerge [
-    (lib.custom.mkContainerSystemd "sonarr" { })
-  ];
-
+  systemd.services."container@sonarr" = {
+    wants = [ "network-online.target" ];
+    after = [
+      "network-online.target"
+      "systemd-tmpfiles-setup.service"
+    ];
+  };
 }
-// (lib.custom.mkContainerDirs "sonarr" [
-  "/mnt/storage/sonarr"
-  {
-    path = "/mnt/storage/media/tvshows";
-    owner = "274";
-    group = "5000";
-    mode = "0775";
-  }
-])
