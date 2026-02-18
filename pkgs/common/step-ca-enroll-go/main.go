@@ -237,9 +237,11 @@ func handleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	expiry := signedCert.NotAfter.Format("20060102")
+
 	// Return .p12 file
 	w.Header().Set("Content-Type", "application/x-pkcs12")
-	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.p12", claims.Email))
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s-%s.p12", claims.Email, expiry))
 	w.Write(p12Data)
 }
 

@@ -6,5 +6,6 @@
   imports = [
     ./reverse-proxy.nix
     ./kanidm-oauth.nix
+    ./jellyfin.nix
   ];
 }

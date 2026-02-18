@@ -61,11 +61,15 @@
     ghostty # Provides terminfo for SSH from Ghostty
   ];
 
-  # Shared GPU configuration
+  # Shared GPU configuration (by-path symlinks for stable device references)
+  # Verify PCI address with: ls -la /dev/dri/by-path/
   hostSpec.gpu = lib.mkDefault {
-    renderDevice = "/dev/dri/renderD128";
-    cardDevice = "/dev/dri/card1";
+    renderDevice = "/dev/dri/by-path/pci-0000:00:02.0-render";
+    cardDevice = "/dev/dri/by-path/pci-0000:00:02.0-card";
   };
 
   hostSpec.isServer = true;
+
+  # Jellyfin media server (managed by jellarr)
+  custom.services.jellyfin.enable = true;
 }

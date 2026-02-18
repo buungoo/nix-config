@@ -10,7 +10,7 @@ let
   platform = if hostSpec.isDarwin then "darwin" else "nixos";
 in
 {
-  imports = [
+  imports = lib.flatten [
     ./${platform}.nix # Platform-specific config
     ./ssh.nix
     ./zoxide.nix
@@ -18,6 +18,10 @@ in
     ./zsh.nix
     ./dua.nix
     ./nvim.nix
+
+    (map lib.custom.relativeToRoot [
+      "home/bungo/common/optional/yazi.nix"
+    ])
   ];
 
   home = {

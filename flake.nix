@@ -150,6 +150,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    jellarr = {
+      url = "github:venkyr77/jellarr";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     unbound-blocklist = {
       url = "github:mirosval/unbound-blocklist";
       inputs.nixpkgs.follows = "nixpkgs";

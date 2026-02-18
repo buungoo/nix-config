@@ -77,7 +77,6 @@
 
   custom.reverseProxy.virtualHosts.ca = {
     domain = "ca.${config.hostSpec.domain}";
-    proxyWan = false;
     backendHost = "10.0.9.2";
     backendPort = 3000; # step-ca enrollment service
     backendSSL = false;

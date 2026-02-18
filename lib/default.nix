@@ -94,6 +94,24 @@
       };
     };
 
+  # Module-friendly container service config (returns top-level config, not a systemd sub-attrset)
+  # Usage in modules: config = lib.mkMerge [ (lib.custom.mkContainerServiceConfig "mycontainer" { }) { ... } ];
+  mkContainerServiceConfig =
+    containerName:
+    {
+      dependsOn ? [ ],
+    }:
+    {
+      systemd.services."container@${containerName}" = {
+        wants = [ "network-online.target" ] ++ (map (dep: "container@${dep}.service") dependsOn);
+        after = [
+          "network-online.target"
+          "systemd-tmpfiles-setup.service"
+        ]
+        ++ (map (dep: "container@${dep}.service") dependsOn);
+      };
+    };
+
   # Helper to create container storage directories via activation scripts
   # Usage: lib.custom.mkContainerDirs "mycontainer" [ "/mnt/storage/mycontainer" "/mnt/storage/mycontainer/data" ]
   # Or with custom ownership: lib.custom.mkContainerDirs "mycontainer" [ { path = "/mnt/storage/foo"; owner = "myuser"; group = "mygroup"; mode = "0750"; } ]
