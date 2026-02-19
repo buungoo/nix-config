@@ -22,12 +22,16 @@ let
   uid = toString cfg.uid;
   gid = toString cfg.gid;
 
-  extraGroups = [ "media" ] ++ lib.optionals cfg.gpu.enable [ "video" "render" ];
+  extraGroups =
+    cfg.extraGroups
+    ++ lib.optionals cfg.gpu.enable [
+      "video"
+      "render"
+    ];
 
   sopsFolder = builtins.toString inputs.nix-secrets + "/sops";
 in
 {
-  # ======================== OPTIONS ========================
   options.custom.services.jellyfin = {
     enable = lib.mkEnableOption "Jellyfin media server container with jellarr management";
 
@@ -43,10 +47,10 @@ in
       description = "GID for jellyfin group on both host and container";
     };
 
-    mediaGid = lib.mkOption {
-      type = lib.types.int;
-      default = 5000;
-      description = "GID for shared media group (used across media containers)";
+    extraGroups = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ "media" ];
+      description = "Extra groups for the jellyfin user";
     };
 
     domain = lib.mkOption {
@@ -73,10 +77,16 @@ in
       description = "Jellyfin HTTP port";
     };
 
+    applicationDataPath = lib.mkOption {
+      type = lib.types.str;
+      default = "/var/lib/jellyfin";
+      description = "Host path for application data";
+    };
+
     backupPath = lib.mkOption {
       type = lib.types.str;
       default = "/mnt/storage/jellyfin/backups";
-      description = "Host path for Jellyfin backups (snapraid-protected)";
+      description = "Host path for Jellyfin backups";
     };
 
     gpu = {
@@ -94,6 +104,16 @@ in
         ];
         default = "qsv";
         description = "Hardware acceleration type";
+      };
+      renderDevice = lib.mkOption {
+        type = lib.types.str;
+        default = "/dev/dri/by-path/pci-0000:00:02.0-render";
+        description = "Path to GPU render device";
+      };
+      cardDevice = lib.mkOption {
+        type = lib.types.str;
+        default = "/dev/dri/by-path/pci-0000:00:02.0-card";
+        description = "Path to GPU card device";
       };
     };
 
@@ -152,245 +172,265 @@ in
     jellarr = { };
   };
 
-  # ======================== IMPLEMENTATION ========================
-  config = lib.mkIf cfg.enable (lib.mkMerge [
-    (lib.custom.mkContainerServiceConfig "jellyfin" { })
-    {
-    # --- Host user/group (matches container for bind mount ownership) ---
-    users.users.jellyfin = {
-      isSystemUser = true;
-      group = "jellyfin";
-      inherit extraGroups;
-      uid = cfg.uid;
-    };
-    users.groups.jellyfin.gid = cfg.gid;
-    users.groups.media.gid = cfg.mediaGid;
+  # Implementation
+  config = lib.mkIf cfg.enable (
+    lib.mkMerge [
+      (lib.custom.mkContainerServiceConfig "jellyfin" { })
+      {
+        # Assert the extraGroups have been defined on host
+        assertions = map (group: {
+          assertion = config.users.groups ? ${group};
+          message = "custom.services.jellyfin: extraGroups references group '${group}' which is not defined";
+        }) cfg.extraGroups;
 
-    # --- Reverse proxy registration ---
-    custom.reverseProxy.virtualHosts.jellyfin = {
-      domain = cfg.domain;
-      backendHost = net.containerIP;
-      backendPort = cfg.port;
-      backendSSL = false;
-    };
+        # Create user on host
+        users.users.jellyfin = {
+          isSystemUser = true;
+          group = "jellyfin";
+          inherit extraGroups;
+          uid = cfg.uid;
+        };
+        users.groups.jellyfin.gid = cfg.gid;
 
-    # --- Container network registration ---
-    hostSpec.networking.containerNetworks.${cfg.network} = {
-      bridge = lib.mkDefault "${cfg.network}-bridge";
-      subnet = lib.mkDefault "10.0.1.0/24";
-      gateway = lib.mkDefault "10.0.1.1";
-      containers.jellyfin = lib.mkDefault cfg.hostOctet;
-    };
+        # Register reverse proxy
+        custom.reverseProxy.virtualHosts.jellyfin = {
+          domain = cfg.domain;
+          backendHost = net.containerIP;
+          backendPort = cfg.port;
+          backendSSL = false;
+        };
 
-    # --- tmpfiles.rules (replaces mkContainerDirs) ---
-    systemd.tmpfiles.rules = [
-      "d /var/lib/jellyfin 0755 ${uid} ${gid} -"
-      "d ${cfg.backupPath} 0755 ${uid} ${gid} -"
-    ];
+        # Register container network
+        hostSpec.networking.containerNetworks.${cfg.network} = {
+          bridge = lib.mkDefault "${cfg.network}-bridge";
+          subnet = lib.mkDefault "10.0.1.0/24";
+          gateway = lib.mkDefault "10.0.1.1";
+          containers.jellyfin = lib.mkDefault cfg.hostOctet;
+        };
 
-    # --- Sops secrets ---
-    sops.secrets = {
-      "jellarr/api-key" = {
-        sopsFile = "${sopsFolder}/shared.yaml";
-        owner = "root";
-        group = "root";
-        mode = "0400";
-      };
-    } // lib.mapAttrs' (username: _: {
-      name = "jellarr/passwords/${username}";
-      value = {
-        sopsFile = "${sopsFolder}/shared.yaml";
-        owner = "root";
-        group = "root";
-        mode = "0400";
-      };
-    }) config.hostSpec.services.jellyfin.users;
+        # Setup bindmount directories
+        systemd.tmpfiles.rules = [
+          "d /var/lib/jellyfin 0755 ${uid} ${gid} -"
+          "d ${cfg.backupPath} 0755 ${uid} ${gid} -"
+        ];
 
-    sops.templates."jellarr-env" = {
-      content = ''
-        JELLARR_API_KEY=${config.sops.placeholder."jellarr/api-key"}
-      '';
-      owner = "root";
-      group = "root";
-      mode = "0400";
-    };
-
-    # --- Container definition ---
-    containers.jellyfin = {
-      autoStart = true;
-      ephemeral = true;
-
-      bindMounts = lib.mkMerge [
-        # Application data
-        {
-          "${jellyfinMedia}" = {
-            hostPath = "/var/lib/jellyfin";
-            isReadOnly = false;
+        # Fetch secrets
+        sops.secrets = {
+          "jellarr/api-key" = {
+            sopsFile = "${sopsFolder}/shared.yaml";
+            owner = "root";
+            group = "root";
+            mode = "0400";
           };
         }
-
-        # Backups on snapraid storage (nested inside app data mount)
-        {
-          "${jellyfinMedia}/backups" = {
-            hostPath = cfg.backupPath;
-            isReadOnly = false;
+        // lib.mapAttrs' (username: _: {
+          name = "jellarr/passwords/${username}";
+          value = {
+            sopsFile = "${sopsFolder}/shared.yaml";
+            owner = "root";
+            group = "root";
+            mode = "0400";
           };
-        }
+        }) config.hostSpec.services.jellyfin.users;
 
-        # Media directories (read-only)
-        (lib.mapAttrs (containerPath: hostPath: {
-          inherit hostPath;
-          isReadOnly = true;
-        }) cfg.mediaMounts)
+        sops.templates."jellarr-env" = {
+          content = ''
+            JELLARR_API_KEY=${config.sops.placeholder."jellarr/api-key"}
+          '';
+          owner = "root";
+          group = "root";
+          mode = "0400";
+        };
 
-        # Secrets
-        {
-          "/run/secrets" = {
-            hostPath = "/run/secrets";
-            isReadOnly = true;
-          };
-          "/run/jellarr-env" = {
-            hostPath = config.sops.templates."jellarr-env".path;
-            isReadOnly = true;
-          };
-        }
+        # Container definition
+        containers.jellyfin = {
+          autoStart = true;
+          ephemeral = true;
 
-        # GPU device passthrough
-        (lib.mkIf cfg.gpu.enable {
-          "/dev/dri" = {
-            hostPath = "/dev/dri";
-            isReadOnly = false;
-          };
-        })
-      ];
+          bindMounts = lib.mkMerge [
+            # Application data
+            {
+              "${jellyfinMedia}" = {
+                hostPath = cfg.applicationDataPath;
+                isReadOnly = false;
+              };
+            }
 
-      # GPU device permissions
-      allowedDevices = lib.mkIf cfg.gpu.enable [
-        {
-          node = config.hostSpec.gpu.renderDevice;
-          modifier = "rwm";
-        }
-        {
-          node = config.hostSpec.gpu.cardDevice;
-          modifier = "rwm";
-        }
-      ];
+            # Backup path
+            {
+              "${jellyfinMedia}/backups" = {
+                hostPath = cfg.backupPath;
+                isReadOnly = false;
+              };
+            }
 
-      privateNetwork = true;
-      hostBridge = net.bridge;
-      localAddress = "${net.containerIP}/${net.cidr}";
+            # Media directories
+            (lib.mapAttrs (containerPath: hostPath: {
+              inherit hostPath;
+              isReadOnly = true;
+            }) cfg.mediaMounts)
 
-      forwardPorts = [
-        {
-          hostPort = cfg.port;
-          containerPort = cfg.port;
-        }
-      ];
+            # Secrets
+            {
+              "/run/secrets" = {
+                hostPath = "/run/secrets";
+                isReadOnly = true;
+              };
+              "/run/jellarr-env" = {
+                hostPath = config.sops.templates."jellarr-env".path;
+                isReadOnly = true;
+              };
+            }
 
-      config = lib.mkMerge [
-        (lib.custom.mkContainerBaseConfig net)
-        {
-          imports = [ jellarrModule ];
+            # GPU device passthrough
+            (lib.mkIf cfg.gpu.enable {
+              "/dev/dri" = {
+                hostPath = "/dev/dri";
+                isReadOnly = false;
+              };
+            })
+          ];
 
-          # --- GPU drivers inside container ---
-          environment.sessionVariables = lib.mkIf cfg.gpu.enable {
-            LIBVA_DRIVER_NAME = "iHD";
-          };
-          hardware.graphics = lib.mkIf cfg.gpu.enable {
-            enable = true;
-            extraPackages = hostConfig.hardware.graphics.extraPackages;
-          };
+          # GPU device permissions
+          allowedDevices = lib.mkIf cfg.gpu.enable [
+            {
+              node = cfg.gpu.renderDevice;
+              modifier = "rwm";
+            }
+            {
+              node = cfg.gpu.cardDevice;
+              modifier = "rwm";
+            }
+          ];
 
-          # --- Stock Jellyfin service ---
-          services.jellyfin = {
-            enable = true;
-            openFirewall = true;
-          };
+          # Network
+          privateNetwork = true;
+          hostBridge = net.bridge;
+          localAddress = "${net.containerIP}/${net.cidr}";
 
-          # --- Jellarr configuration management ---
-          # Disable the timer — config only changes on rebuild, not at runtime
-          systemd.timers.jellarr.enable = false;
-          # Run once after Jellyfin is ready
-          systemd.services.jellarr = {
-            after = [ "jellyfin.service" ];
-            wants = [ "jellyfin.service" ];
-            wantedBy = [ "multi-user.target" ];
-          };
+          forwardPorts = [
+            {
+              hostPort = cfg.port;
+              containerPort = cfg.port;
+            }
+          ];
 
-          services.jellarr = {
-            enable = true;
-            user = "jellyfin";
-            group = "jellyfin";
-            environmentFile = "/run/jellarr-env";
+          config = lib.mkMerge [
+            (lib.custom.mkContainerBaseConfig net)
+            {
+              imports = [ jellarrModule ];
 
-            bootstrap = {
-              enable = true;
-              apiKeyFile = "/run/secrets/jellarr/api-key";
-            };
-
-            config = {
-              version = 1;
-              base_url = "http://localhost:${toString cfg.port}";
-
-              encoding = lib.mkIf cfg.gpu.enable {
-                enableHardwareEncoding = true;
-                hardwareAccelerationType = cfg.gpu.type;
-                qsvDevice = lib.mkIf (cfg.gpu.type == "qsv") hostConfig.hostSpec.gpu.renderDevice;
-                vaapiDevice = lib.mkIf (cfg.gpu.type == "vaapi") hostConfig.hostSpec.gpu.renderDevice;
-                enableDecodingColorDepth10Hevc = true;
-                allowHevcEncoding = true;
-                allowAv1Encoding = false;
-                hardwareDecodingCodecs = [
-                  "h264"
-                  "hevc"
-                  "mpeg2video"
-                  "vc1"
-                  "vp9"
-                  "av1"
-                ];
+              # GPU drivers inside container
+              # This may not be needed ?
+              # See https://discourse.nixos.org/t/jellyfin-in-a-nixos-systemd-container-with-nvidia-hardware-acceleration/62678
+              environment.sessionVariables = lib.mkIf cfg.gpu.enable {
+                LIBVA_DRIVER_NAME = "iHD";
+              };
+              hardware.graphics = lib.mkIf cfg.gpu.enable {
+                enable = true;
+                extraPackages = hostConfig.hardware.graphics.extraPackages;
               };
 
-              library = {
-                virtualFolders = map (lib_: {
-                  name = lib_.name;
-                  collectionType = lib_.collectionType;
-                  libraryOptions = {
-                    pathInfos = map (p: { path = p; }) lib_.paths;
+              services.jellyfin = {
+                enable = true;
+                openFirewall = true;
+                forceEncodingConfig = cfg.gpu.enable;
+                hardwareAcceleration = lib.mkIf cfg.gpu.enable {
+                  enable = true;
+                  type = cfg.gpu.type;
+                  device = cfg.gpu.renderDevice;
+                };
+                transcoding = lib.mkIf cfg.gpu.enable {
+                  enableHardwareEncoding = true;
+                  enableToneMapping = true;
+                  enableIntelLowPowerEncoding = true;
+                  hardwareDecodingCodecs = {
+                    h264 = true;
+                    hevc = true;
+                    hevc10bit = true;
+                    mpeg2 = true;
+                    vc1 = true;
+                    vp9 = true;
+                    av1 = true;
                   };
-                }) cfg.libraries;
-              };
-
-              users = lib.mapAttrsToList (username: userConfig: {
-                name = username;
-                passwordFile = hostConfig.sops.secrets."jellarr/passwords/${username}".path;
-                policy = {
-                  isAdministrator = userConfig.isAdmin;
-                };
-              }) hostConfig.hostSpec.services.jellyfin.users;
-
-              system = {
-                trickplayOptions = lib.mkIf cfg.gpu.enable {
-                  enableHwAcceleration = true;
-                  enableHwEncoding = true;
+                  hardwareEncodingCodecs = {
+                    hevc = true;
+                  };
                 };
               };
 
-              startup = {
-                completeStartupWizard = true;
+              systemd.timers.jellarr.enable = false;
+              # Run once after Jellyfin is ready after rebuild
+              systemd.services.jellarr = {
+                after = [ "jellyfin.service" ];
+                wants = [ "jellyfin.service" ];
+                wantedBy = [ "multi-user.target" ];
+                serviceConfig = {
+                  Restart = "on-failure";
+                  RestartSec = "5s";
+                };
               };
-            };
-          };
 
-          # --- Container user/group (matches host) ---
-          users.users.jellyfin = {
-            uid = cfg.uid;
-            inherit extraGroups;
-          };
-          users.groups.jellyfin.gid = cfg.gid;
-          users.groups.media.gid = cfg.mediaGid;
-        }
-      ];
-    };
-  }
-  ]);
+              # Jellarr configures jellyfin via API during runtime
+              services.jellarr = {
+                enable = true;
+                user = "jellyfin";
+                group = "jellyfin";
+                environmentFile = "/run/jellarr-env";
+
+                bootstrap = {
+                  enable = true;
+                  apiKeyFile = "/run/secrets/jellarr/api-key";
+                };
+
+                config = {
+                  version = 1;
+                  base_url = "http://localhost:${toString cfg.port}";
+
+                  library = {
+                    virtualFolders = map (lib_: {
+                      name = lib_.name;
+                      collectionType = lib_.collectionType;
+                      libraryOptions = {
+                        pathInfos = map (p: { path = p; }) lib_.paths;
+                      };
+                    }) cfg.libraries;
+                  };
+
+                  users = lib.mapAttrsToList (username: userConfig: {
+                    name = username;
+                    passwordFile = hostConfig.sops.secrets."jellarr/passwords/${username}".path;
+                    policy = {
+                      isAdministrator = userConfig.isAdmin;
+                    };
+                  }) hostConfig.hostSpec.services.jellyfin.users;
+
+                  system = {
+                    trickplayOptions = lib.mkIf cfg.gpu.enable {
+                      enableHwAcceleration = true;
+                      enableHwEncoding = true;
+                    };
+                  };
+
+                  startup = {
+                    completeStartupWizard = true;
+                  };
+                };
+              };
+
+              # Container user/group
+              users.users.jellyfin = {
+                uid = cfg.uid;
+                inherit extraGroups;
+              };
+              # Mirror extra groups from host with matching GIDs
+              users.groups = { jellyfin.gid = cfg.gid; } // lib.genAttrs cfg.extraGroups (group: {
+                gid = hostConfig.users.groups.${group}.gid;
+              });
+            }
+          ];
+        };
+      }
+    ]
+  );
 }

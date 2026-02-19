@@ -70,6 +70,6 @@
 
   hostSpec.isServer = true;
 
-  # Jellyfin media server (managed by jellarr)
+  # Jellyfin media server
   custom.services.jellyfin.enable = true;
 }

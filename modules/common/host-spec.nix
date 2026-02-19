@@ -394,15 +394,15 @@
           options = {
             renderDevice = lib.mkOption {
               type = lib.types.str;
-              default = "/dev/dri/renderD128";
+              default = "/dev/dri/by-path/pci-0000:00:02.0-render";
               description = "Path to the GPU render device for hardware acceleration";
-              example = "/dev/dri/renderD128";
+              example = "/dev/dri/by-path/pci-0000:00:02.0-render";
             };
             cardDevice = lib.mkOption {
               type = lib.types.str;
-              default = "/dev/dri/card0";
+              default = "/dev/dri/by-path/pci-0000:00:02.0-card";
               description = "Path to the GPU card device";
-              example = "/dev/dri/card1";
+              example = "/dev/dri/by-path/pci-0000:00:02.0-card";
             };
           };
         }

@@ -1,7 +1,7 @@
 # sudo systemd-run -t --pty -M immich --uid=immich \
 #     /run/current-system/sw/bin/bash
 #
-# To try if the hard-ware acceleration works (must be as immich):
+# To try if the hardware acceleration works
 # ffmpeg -hide_banner \
 #  -init_hw_device qsv=hw:/dev/dri/renderD128 \
 #  -f lavfi -i testsrc=size=128x128:rate=1 -t 1 \
