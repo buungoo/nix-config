@@ -130,7 +130,7 @@
       ];
 
       config = lib.mkMerge [
-        (lib.custom.mkContainerBaseConfig net)
+        (lib.custom.mkContainerBaseConfig (net // { inherit (config.hostSpec) stateVersion; }))
         {
           # https://wiki.nixos.org/wiki/Jellyfin#Troubleshooting_VAAPI_and_Intel_QSV
           # Probably not needed for immich graphics but kept for example

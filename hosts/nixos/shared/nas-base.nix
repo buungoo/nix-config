@@ -40,10 +40,10 @@
       # TODO: problems with declarative-jellyfin
       # "hosts/common/optional/containers/jellyfin.nix"
       "hosts/common/optional/containers/kanidm.nix"
-      "hosts/common/optional/containers/sonarr.nix"
+      # "hosts/common/optional/containers/sonarr.nix" # Replaced by modules/nixos/sonarr.nix
       "hosts/common/optional/containers/radarr.nix"
       "hosts/common/optional/containers/prowlarr.nix"
-      "hosts/common/optional/containers/qbittorrent.nix"
+      # "hosts/common/optional/containers/qbittorrent.nix" # Replaced by modules/nixos/qbittorrent.nix
       "hosts/common/optional/containers/jellyseer.nix"
       "hosts/common/optional/containers/bazarr.nix"
       "hosts/common/optional/containers/monitoring.nix"
@@ -72,4 +72,10 @@
 
   # Jellyfin media server
   custom.services.jellyfin.enable = true;
+
+  # Sonarr TV series manager
+  custom.services.sonarr.enable = true;
+
+  # qBittorrent torrent client
+  custom.services.qbittorrent.enable = true;
 }

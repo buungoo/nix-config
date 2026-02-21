@@ -105,7 +105,7 @@ in
       ];
 
       config = lib.mkMerge [
-        (lib.custom.mkContainerBaseConfig net)
+        (lib.custom.mkContainerBaseConfig (net // { inherit (config.hostSpec) stateVersion; }))
         {
           # Make auth domain resolve to container's own IP inside container
           networking.hosts = {

@@ -7,5 +7,8 @@
     ./reverse-proxy.nix
     ./kanidm-oauth.nix
     ./jellyfin.nix
+    ./sonarr.nix
+    ./qbittorrent.nix
+    # ./mediamanager.nix
   ];
 }

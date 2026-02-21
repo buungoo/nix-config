@@ -230,7 +230,8 @@ func handleCallback(w http.ResponseWriter, r *http.Request) {
 	// Package certificate + private key + CA chain as .p12
 	// Use password from environment variable, default to empty string
 	p12Password := getEnv("P12_PASSWORD", "")
-	p12Data, err := pkcs12.Modern2023.Encode(rand.Reader, privateKey, signedCert, caCerts, p12Password)
+	// p12Data, err := pkcs12.Modern2023.Encode(rand.Reader, privateKey, signedCert, caCerts, p12Password)
+	p12Data, err := pkcs12.Modern2023.Encode(privateKey, signedCert, caCerts, p12Password)
 	if err != nil {
 		log.Printf("Failed to create PKCS12: %v", err)
 		http.Error(w, "Failed to create PKCS12", http.StatusInternalServerError)

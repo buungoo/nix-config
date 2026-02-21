@@ -152,9 +152,9 @@ in
           paths = [ "/media/movies" ];
         }
         {
-          name = "TV Shows";
+          name = "Series";
           collectionType = "tvshows";
-          paths = [ "/media/tvshows" ];
+          paths = [ "/media/tv" ];
         }
       ];
       description = "Media library definitions";
@@ -164,7 +164,7 @@ in
       type = lib.types.attrsOf lib.types.str;
       default = {
         "/media/movies" = "/mnt/storage/arr/media/movies";
-        "/media/tvshows" = "/mnt/storage/arr/media/tvshows";
+        "/media/tv" = "/mnt/storage/arr/media/tv";
       };
       description = "Container path → host path mappings for media directories (read-only bind mounts)";
     };
@@ -212,10 +212,13 @@ in
         systemd.tmpfiles.rules = [
           "d /var/lib/jellyfin 0755 ${uid} ${gid} -"
           "d ${cfg.backupPath} 0755 ${uid} ${gid} -"
-        ];
+        ] ++ (lib.mapAttrsToList (_: hostPath:
+          "d ${hostPath} 0775 ${uid} ${toString config.users.groups.media.gid} -"
+        ) cfg.mediaMounts);
 
         # Fetch secrets
         sops.secrets = {
+          # openssl rand -base64 48
           "jellarr/api-key" = {
             sopsFile = "${sopsFolder}/shared.yaml";
             owner = "root";
@@ -316,7 +319,7 @@ in
           ];
 
           config = lib.mkMerge [
-            (lib.custom.mkContainerBaseConfig net)
+            (lib.custom.mkContainerBaseConfig (net // { inherit (config.hostSpec) stateVersion; }))
             {
               imports = [ jellarrModule ];
 

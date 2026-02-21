@@ -155,7 +155,7 @@
       ];
 
       config = lib.mkMerge [
-        (lib.custom.mkContainerBaseConfig net)
+        (lib.custom.mkContainerBaseConfig (net // { inherit (config.hostSpec) stateVersion; }))
         {
           environment.systemPackages = with pkgs; [
             step-ca

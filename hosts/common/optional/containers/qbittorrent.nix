@@ -1,5 +1,11 @@
 # sudo systemd-run -t --pty -M qbittorrent --uid=qbittorrent \
 #     /run/current-system/sw/bin/bash
+#
+# TODO: Configure qBittorrent categories to match torrent directory structure:
+#   movies  → save path: /arr/torrents/movies/complete,  temp: /arr/torrents/movies/incomplete
+#   tv      → save path: /arr/torrents/tv/complete,      temp: /arr/torrents/tv/incomplete
+#   music   → save path: /arr/torrents/music/complete,   temp: /arr/torrents/music/incomplete
+#   books   → save path: /arr/torrents/books/complete,   temp: /arr/torrents/books/incomplete
 {
   config,
   pkgs,
@@ -43,16 +49,20 @@ in
 
   systemd.tmpfiles.rules = [
     "d /var/lib/qbittorrent 0755 ${toString uid} ${toString gid} -"
-    "d /mnt/storage/arr/downloads 2775 ${toString uid} ${toString mediaGid} -"
-    "d /mnt/storage/arr/downloads/incomplete 2775 ${toString uid} ${toString mediaGid} -"
-    "d /mnt/storage/arr/downloads/complete 2775 ${toString uid} ${toString mediaGid} -"
-    "d /mnt/storage/arr/downloads/complete/movies 2775 ${toString uid} ${toString mediaGid} -"
-    "d /mnt/storage/arr/downloads/complete/tv 2775 ${toString uid} ${toString mediaGid} -"
+
     "d /mnt/storage/arr/torrents 2775 ${toString uid} ${toString mediaGid} -"
     "d /mnt/storage/arr/torrents/movies 2775 ${toString uid} ${toString mediaGid} -"
     "d /mnt/storage/arr/torrents/tv 2775 ${toString uid} ${toString mediaGid} -"
     "d /mnt/storage/arr/torrents/music 2775 ${toString uid} ${toString mediaGid} -"
     "d /mnt/storage/arr/torrents/books 2775 ${toString uid} ${toString mediaGid} -"
+    "d /mnt/storage/arr/torrents/movies/complete 2775 ${toString uid} ${toString mediaGid} -"
+    "d /mnt/storage/arr/torrents/movies/incomplete 2775 ${toString uid} ${toString mediaGid} -"
+    "d /mnt/storage/arr/torrents/tv/complete 2775 ${toString uid} ${toString mediaGid} -"
+    "d /mnt/storage/arr/torrents/tv/incomplete 2775 ${toString uid} ${toString mediaGid} -"
+    "d /mnt/storage/arr/torrents/music/complete 2775 ${toString uid} ${toString mediaGid} -"
+    "d /mnt/storage/arr/torrents/music/incomplete 2775 ${toString uid} ${toString mediaGid} -"
+    "d /mnt/storage/arr/torrents/books/complete 2775 ${toString uid} ${toString mediaGid} -"
+    "d /mnt/storage/arr/torrents/books/incomplete 2775 ${toString uid} ${toString mediaGid} -"
   ];
 
   containers.qbittorrent =
@@ -150,13 +160,20 @@ in
 
           systemd.tmpfiles.rules = [
             "d /var/lib/qbittorrent 0755 ${toString uid} ${toString gid} -"
-            "d /arr/downloads 2775 ${toString uid} ${toString mediaGid} -"
-            "d /arr/downloads/incomplete 2775 ${toString uid} ${toString mediaGid} -"
+
             "d /arr/torrents 2775 ${toString uid} ${toString mediaGid} -"
             "d /arr/torrents/movies 2775 ${toString uid} ${toString mediaGid} -"
             "d /arr/torrents/tv 2775 ${toString uid} ${toString mediaGid} -"
             "d /arr/torrents/music 2775 ${toString uid} ${toString mediaGid} -"
             "d /arr/torrents/books 2775 ${toString uid} ${toString mediaGid} -"
+            "d /arr/torrents/movies/complete 2775 ${toString uid} ${toString mediaGid} -"
+            "d /arr/torrents/movies/incomplete 2775 ${toString uid} ${toString mediaGid} -"
+            "d /arr/torrents/tv/complete 2775 ${toString uid} ${toString mediaGid} -"
+            "d /arr/torrents/tv/incomplete 2775 ${toString uid} ${toString mediaGid} -"
+            "d /arr/torrents/music/complete 2775 ${toString uid} ${toString mediaGid} -"
+            "d /arr/torrents/music/incomplete 2775 ${toString uid} ${toString mediaGid} -"
+            "d /arr/torrents/books/complete 2775 ${toString uid} ${toString mediaGid} -"
+            "d /arr/torrents/books/incomplete 2775 ${toString uid} ${toString mediaGid} -"
           ];
         }
       ];

@@ -155,6 +155,20 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    declarr = {
+      url = "github:buungoo/declarr";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    # mydia = {
+    #   url = "github:buungoo/mydia";
+    # };
+    # Until mydia solves their flake.nix issues
+    mediamanager = {
+      url = "github:strangeglyph/mediamanager-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     unbound-blocklist = {
       url = "github:mirosval/unbound-blocklist";
       inputs.nixpkgs.follows = "nixpkgs";

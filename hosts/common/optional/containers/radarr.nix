@@ -81,7 +81,7 @@ in
       ];
 
       config = lib.mkMerge [
-        (lib.custom.mkContainerBaseConfig net)
+        (lib.custom.mkContainerBaseConfig (net // { inherit (config.hostSpec) stateVersion; }))
         {
           services.radarr = {
             enable = true;

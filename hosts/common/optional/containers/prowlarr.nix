@@ -59,7 +59,7 @@ in
       ];
 
       config = lib.mkMerge [
-        (lib.custom.mkContainerBaseConfig net)
+        (lib.custom.mkContainerBaseConfig (net // { inherit (config.hostSpec) stateVersion; }))
         {
           systemd.services.prowlarr = {
             enable = true;
