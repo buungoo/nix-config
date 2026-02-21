@@ -201,7 +201,7 @@ in
                 hostPath = cfg.dataDir;
                 isReadOnly = false;
               };
-              "/torrents" = {
+              "/arr/torrents" = {
                 hostPath = cfg.torrentPath;
                 isReadOnly = false;
               };
@@ -284,7 +284,7 @@ in
                     Core.AutoDeleteAddedTorrentFile = "IfAdded";
                     Network.PortForwardingEnabled = false; # Disable upnp
                     Preferences.WebUI = {
-                      Username = "admin";
+                      Username = "bungo";
                       Password_PBKDF2 = "PLACEHOLDER"; # Replaced by ExecStartPre with value from sops
                       AlternativeUIEnabled = true;
                       RootFolder = "${pkgs.vuetorrent}/share/vuetorrent";
@@ -295,13 +295,16 @@ in
                         BTProtocol = "TCP";
                         Interface = lib.mkIf cfg.vpn.enable "wg0";
                         InterfaceName = lib.mkIf cfg.vpn.enable "wg0";
-                        DefaultSavePath = "/torrents";
-                        TempPath = "/torrents/incomplete";
+                        DefaultSavePath = "/arr/torrents";
+                        TempPath = "/arr/torrents/incomplete";
                         TempPathEnabled = true;
                         DisableAutoTMMByDefault = false; # Automatic torrent management mode
                         DisableAutoTMMTriggers.CategorySavePathChanged = false;
                         DisableAutoTMMTriggers.DefaultSavePathChanged = false;
-                        DHTEnabled = false; # Might cause ddos protection by vpn ?
+                        # Might cause ddos protection by vpn ?
+                        # This was from 2 years ago but let's assume this is still the case:
+                        # https://www.reddit.com/r/ProtonVPN/comments/1eowoxt/tip_dht_will_trigger_protonvpn_antiddos_disable_it/
+                        DHTEnabled = false;
                         GlobalDLSpeedLimit = 240000;
                         GlobalUPSpeedLimit = 80000;
                         UseAlternativeGlobalSpeedLimit = false;
@@ -381,7 +384,7 @@ in
                     COOKIE=$(mktemp)
                     ${pkgs.curl}/bin/curl -s -b "$COOKIE" -c "$COOKIE" \
                       http://localhost:${toString cfg.port}/api/v2/auth/login \
-                      -d "username=admin&password=$PASSWORD"
+                      -d "username=bungo&password=$PASSWORD"
                     ${pkgs.curl}/bin/curl -s -b "$COOKIE" \
                       http://localhost:${toString cfg.port}/api/v2/app/setPreferences \
                       -d "json={\"listen_port\":$PORT}"

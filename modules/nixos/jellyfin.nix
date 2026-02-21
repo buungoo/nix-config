@@ -1,9 +1,3 @@
-# Jellyfin media server in a NixOS container, managed by jellarr
-#
-# Provides: custom.services.jellyfin options
-# Produces: container definition, reverse proxy registration, tmpfiles, sops secrets
-#
-# Requires: networking.nix to be imported separately (handled by other container files in nas-base.nix)
 {
   config,
   pkgs,

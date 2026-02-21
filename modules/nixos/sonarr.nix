@@ -129,7 +129,7 @@ in
 
         # Fetch secrets
         sops.secrets."sonarr/api-key" = {
-          sopsFile = "${sopsFolder}/shared.yaml";
+          sopsFile = "${sopsFolder}/${config.hostSpec.hostName}.yaml";
           # Owned by sonarr because declarr does:
           # SONARR__AUTH__APIKEY=$(cat /run/secrets/sonarr/api-key) sonarr -nobrowser -data="/var/lib/sonarr"
           # Really dumb
@@ -140,7 +140,7 @@ in
           mode = "0440";
         };
         sops.secrets."sonarr/password" = {
-          sopsFile = "${sopsFolder}/shared.yaml";
+          sopsFile = "${sopsFolder}/${config.hostSpec.hostName}.yaml";
           owner = "sonarr";
           group = "media";
           mode = "0440";
@@ -235,9 +235,9 @@ in
 
                         authenticationMethod = "forms";
                         authenticationRequired = "disabledForLocalAddresses";
-                        username = "admin";
+                        username = "bungo";
                         password = config.sops.secrets."sonarr/password".path;
-                        # Seriously is this?
+                        # Seriously what is this?
                         # Why not just send the password twice?
                         passwordConfirmation = config.sops.secrets."sonarr/password".path;
                       };
@@ -271,7 +271,7 @@ in
                       fields = {
                         host = (lib.custom.mkContainerNetworkConfig config cfg.network "qbittorrent").containerIP;
                         port = config.custom.services.qbittorrent.port;
-                        username = "admin";
+                        username = "bungo";
                         password = config.sops.secrets."qbit/plaintext_password".path;
                         tvCategory = "tv";
                       };
@@ -279,7 +279,8 @@ in
                     customFormat = { }; # Does not need to be specified if we use profiles
                     # Why is this a requirement? Should default??
                     qualityProfile = {
-                      "2160p Balanced" = { };
+                      # https://github.com/Dictionarry-Hub/database/tree/stable/profiles
+                      "2160p Efficient" = { };
                     };
                   };
                 };

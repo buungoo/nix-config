@@ -308,6 +308,7 @@ in
         lib.nameValuePair vh.domain {
           domain = vh.domain;
           webroot = null;
+          reloadServices = [ "haproxy-cert-combine.service" "haproxy.service" ];
         }
       ) allHosts)
     ];

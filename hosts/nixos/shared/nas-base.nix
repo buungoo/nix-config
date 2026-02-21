@@ -40,10 +40,10 @@
       # TODO: problems with declarative-jellyfin
       # "hosts/common/optional/containers/jellyfin.nix"
       "hosts/common/optional/containers/kanidm.nix"
-      # "hosts/common/optional/containers/sonarr.nix" # Replaced by modules/nixos/sonarr.nix
-      "hosts/common/optional/containers/radarr.nix"
-      "hosts/common/optional/containers/prowlarr.nix"
-      # "hosts/common/optional/containers/qbittorrent.nix" # Replaced by modules/nixos/qbittorrent.nix
+      # "hosts/common/optional/containers/sonarr.nix"
+      # "hosts/common/optional/containers/radarr.nix"
+      # "hosts/common/optional/containers/prowlarr.nix"
+      # "hosts/common/optional/containers/qbittorrent.nix"
       "hosts/common/optional/containers/jellyseer.nix"
       "hosts/common/optional/containers/bazarr.nix"
       "hosts/common/optional/containers/monitoring.nix"
@@ -61,8 +61,8 @@
     ghostty # Provides terminfo for SSH from Ghostty
   ];
 
-  # Shared GPU configuration (by-path symlinks for stable device references)
-  # Verify PCI address with: ls -la /dev/dri/by-path/
+  # Shared GPU configuration
+  # ls -la /dev/dri/by-path/
   hostSpec.gpu = lib.mkDefault {
     renderDevice = "/dev/dri/by-path/pci-0000:00:02.0-render";
     cardDevice = "/dev/dri/by-path/pci-0000:00:02.0-card";
@@ -70,12 +70,9 @@
 
   hostSpec.isServer = true;
 
-  # Jellyfin media server
   custom.services.jellyfin.enable = true;
-
-  # Sonarr TV series manager
   custom.services.sonarr.enable = true;
-
-  # qBittorrent torrent client
   custom.services.qbittorrent.enable = true;
+  custom.services.prowlarr.enable = true;
+  custom.services.radarr.enable = true;
 }

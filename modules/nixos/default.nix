@@ -9,6 +9,8 @@
     ./jellyfin.nix
     ./sonarr.nix
     ./qbittorrent.nix
+    ./prowlarr.nix
+    ./radarr.nix
     # ./mediamanager.nix
   ];
 }
