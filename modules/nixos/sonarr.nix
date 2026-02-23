@@ -122,9 +122,10 @@ in
           containers.sonarr = lib.mkDefault cfg.hostOctet;
         };
 
-        # Setup bindmount directories (media/torrent dirs managed by jellyfin.nix and qbittorrent.nix)
+        # Setup bindmount directories
         systemd.tmpfiles.rules = [
           "d ${cfg.dataDir} 0755 ${uid} ${gid} -"
+          "d ${cfg.rootPath}/media/tv 0755 ${uid} ${toString mediaGid} -"
         ];
 
         # Fetch secrets
@@ -264,10 +265,7 @@ in
                         CopyUsingHardlinks = true;
                         EnableMediaInfo = true; # This is the "analyze media files" option
                         RecycleBin = ""; # Delete files immediately
-                        SetPermissionsLinux = true;
-                        ChmodFolder = "0775";
-                        ChmodFile = "0664";
-                        ChownGroup = "media";
+                        SetPermissionsLinux = false;
                       };
                       DownloadClient = {
                         EnableCompletedDownloadHandling = true;

@@ -111,6 +111,7 @@ in
         # Setup bindmount directories
         systemd.tmpfiles.rules = [
           "d ${cfg.dataDir} 0755 ${uid} ${gid} -"
+          "d ${cfg.rootPath}/media/movies 0755 ${uid} ${toString mediaGid} -"
         ];
 
         # Fetch secrets
@@ -229,10 +230,7 @@ in
                         CopyUsingHardlinks = true;
                         EnableMediaInfo = true;
                         RecycleBin = "";
-                        SetPermissionsLinux = true;
-                        ChmodFolder = "0775";
-                        ChmodFile = "0664";
-                        ChownGroup = "media";
+                        SetPermissionsLinux = false;
                       };
                       DownloadClient = {
                         EnableCompletedDownloadHandling = true;

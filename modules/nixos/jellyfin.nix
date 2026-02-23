@@ -206,10 +206,7 @@ in
         systemd.tmpfiles.rules = [
           "d /var/lib/jellyfin 0755 ${uid} ${gid} -"
           "d ${cfg.backupPath} 0755 ${uid} ${gid} -"
-        ]
-        ++ (lib.mapAttrsToList (
-          _: hostPath: "d ${hostPath} 0775 ${uid} ${toString config.users.groups.media.gid} -"
-        ) cfg.mediaMounts);
+        ];
 
         # Fetch secrets
         sops.secrets = {
