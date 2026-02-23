@@ -172,6 +172,10 @@ in
               hostPath = config.sops.secrets."qbit/plaintext_password".path;
               isReadOnly = true;
             };
+            "/run/secrets/jellarr/api-key" = {
+              hostPath = config.sops.secrets."jellarr/api-key".path;
+              isReadOnly = true;
+            };
           };
 
           # Network
@@ -216,6 +220,7 @@ in
                       "$.*.config.host.passwordConfirmation"
                       "$.*.config.host.apiKey"
                       "$.*.downloadClient.*.fields.password"
+                      "$.*.notification.*.fields.apiKey"
                     ];
                   };
 
@@ -259,7 +264,10 @@ in
                         CopyUsingHardlinks = true;
                         EnableMediaInfo = true; # This is the "analyze media files" option
                         RecycleBin = ""; # Delete files immediately
-                        SetPermissionsLinux = false; # The setup already handles this
+                        SetPermissionsLinux = true;
+                        ChmodFolder = "0775";
+                        ChmodFile = "0664";
+                        ChownGroup = "media";
                       };
                       DownloadClient = {
                         EnableCompletedDownloadHandling = true;
@@ -276,7 +284,25 @@ in
                         tvCategory = "tv";
                       };
                     };
-                    customFormat = { }; # Does not need to be specified if we use profiles
+                    notification.Jellyfin = {
+                      implementation = "MediaBrowser";
+                      # Other events: onGrab, onDownload, onSeriesAdd, onSeriesDelete, onHealthIssue, onHealthRestored, onApplicationUpdate, onManualInteractionRequired
+                      onImportComplete = true;
+                      onUpgrade = true;
+                      onRename = true;
+                      onEpisodeFileDelete = true;
+                      onEpisodeFileDeleteForUpgrade = true;
+                      fields = {
+                        host = (lib.custom.mkContainerNetworkConfig config cfg.network "jellyfin").containerIP;
+                        port = config.custom.services.jellyfin.port;
+                        apiKey = "/run/secrets/jellarr/api-key";
+                        useSsl = false;
+                        updateLibrary = true;
+                        notify = false;
+                        mapFrom = "/arr/media";
+                        mapTo = "/media";
+                      };
+                    };
                     # Why is this a requirement? Should default??
                     qualityProfile = {
                       # https://github.com/Dictionarry-Hub/database/tree/stable/profiles

@@ -44,7 +44,7 @@
       # "hosts/common/optional/containers/radarr.nix"
       # "hosts/common/optional/containers/prowlarr.nix"
       # "hosts/common/optional/containers/qbittorrent.nix"
-      "hosts/common/optional/containers/jellyseer.nix"
+      # "hosts/common/optional/containers/jellyseer.nix"
       "hosts/common/optional/containers/bazarr.nix"
       "hosts/common/optional/containers/monitoring.nix"
 
@@ -75,4 +75,5 @@
   custom.services.qbittorrent.enable = true;
   custom.services.prowlarr.enable = true;
   custom.services.radarr.enable = true;
+  custom.services.jellyseerr.enable = true;
 }

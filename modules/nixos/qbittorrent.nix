@@ -305,22 +305,23 @@ in
                         # This was from 2 years ago but let's assume this is still the case:
                         # https://www.reddit.com/r/ProtonVPN/comments/1eowoxt/tip_dht_will_trigger_protonvpn_antiddos_disable_it/
                         DHTEnabled = false;
-                        GlobalDLSpeedLimit = 240000;
-                        GlobalUPSpeedLimit = 80000;
+                        GlobalDLSpeedLimit = 25000; # KB/s
+                        GlobalUPSpeedLimit = 25000;
                         UseAlternativeGlobalSpeedLimit = false;
-                        MaxActiveCheckingTorrents = 2; # Should be fine (with overhead) on all nvme nas
+                        MaxActiveCheckingTorrents = 4; # Should be fine (with overhead) on all nvme nas
                         # Port = This is set dynamically by the qbit-portforward script
 
                         # Set to -1 to disable
-                        MaxConnections = 800; # Max peers from all torrents combined
-                        MaxConnectionsPerTorrent = 150; # Max peers for a singular torrent
-                        MaxUploads = 40; # Max peers we are actively uploading to
+                        MaxConnections = 2000; # Max peers from all torrents combined
+                        MaxConnectionsPerTorrent = 60; # Max peers for a singular torrent
+
+                        MaxUploads = 50; # Max peers we are actively uploading to
                         MaxUploadsPerTorrent = 6; # Max peers uploading to for a single torrent
 
                         QueueingSystemEnabled = true;
-                        MaxActiveTorrents = 20;
-                        MaxActiveDownloads = 5;
-                        MaxActiveUploads = 15;
+                        MaxActiveTorrents = 400;
+                        MaxActiveDownloads = 20;
+                        MaxActiveUploads = 380;
 
                         IgnoreSlowTorrentsForQueueing = true;
                         SlowTorrentsDownloadRate = 500;
@@ -333,11 +334,11 @@ in
                 ];
               };
 
-              # Uncomment if sonarr/radarr need to write to torrent files (hardlinks only need read)
-              # systemd.services.qbittorrent.serviceConfig.UMask = "0002";
-
               systemd.services.qbittorrent = lib.mkMerge [
                 {
+                  # UMask 0002 creates files as 0664 (group-writable), required for
+                  # sonarr/radarr hardlinks due to fs.protected_hardlinks
+                  serviceConfig.UMask = "0002";
                   # Inject password from sops into config after the module's preStart writes serverConfig
                   # mkAfter ensures this runs after the INI generator, which quotes @ByteArray() breaking Qt
                   preStart = lib.mkAfter ''

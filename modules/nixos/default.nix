@@ -11,6 +11,7 @@
     ./qbittorrent.nix
     ./prowlarr.nix
     ./radarr.nix
+    ./jellyseerr.nix
     # ./mediamanager.nix
   ];
 }

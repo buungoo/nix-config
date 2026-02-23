@@ -206,8 +206,9 @@ in
         systemd.tmpfiles.rules = [
           "d /var/lib/jellyfin 0755 ${uid} ${gid} -"
           "d ${cfg.backupPath} 0755 ${uid} ${gid} -"
-        ] ++ (lib.mapAttrsToList (_: hostPath:
-          "d ${hostPath} 0775 ${uid} ${toString config.users.groups.media.gid} -"
+        ]
+        ++ (lib.mapAttrsToList (
+          _: hostPath: "d ${hostPath} 0775 ${uid} ${toString config.users.groups.media.gid} -"
         ) cfg.mediaMounts);
 
         # Fetch secrets
@@ -216,8 +217,8 @@ in
           "jellarr/api-key" = {
             sopsFile = "${sopsFolder}/shared.yaml";
             owner = "root";
-            group = "root";
-            mode = "0400";
+            group = "media";
+            mode = "0440";
           };
         }
         // lib.mapAttrs' (username: _: {
@@ -225,8 +226,8 @@ in
           value = {
             sopsFile = "${sopsFolder}/shared.yaml";
             owner = "root";
-            group = "root";
-            mode = "0400";
+            group = "media";
+            mode = "0440";
           };
         }) config.hostSpec.services.jellyfin.users;
 
@@ -317,6 +318,9 @@ in
             {
               imports = [ jellarrModule ];
 
+              # Intro Skipper plugin needs ffmpeg on the jellyfin service's PATH
+              systemd.services.jellyfin.path = [ pkgs.jellyfin-ffmpeg ];
+
               # GPU drivers inside container
               # This may not be needed ?
               # See https://discourse.nixos.org/t/jellyfin-in-a-nixos-systemd-container-with-nvidia-hardware-acceleration/62678
@@ -384,12 +388,25 @@ in
                   version = 1;
                   base_url = "http://localhost:${toString cfg.port}";
 
+                  # NOTE: This is not idempotent
+                  branding = {
+                    # customCss = "@import url(\"https://cdn.jsdelivr.net/gh/lscambo13/ElegantFin@main/Theme/ElegantFin-jellyfin-theme-build-latest-minified.css\");";
+                    customCss = "";
+                  };
+
+                  # NOTE: This is not idempotent
                   library = {
                     virtualFolders = map (lib_: {
                       name = lib_.name;
                       collectionType = lib_.collectionType;
                       libraryOptions = {
                         pathInfos = map (p: { path = p; }) lib_.paths;
+                        # TODO: Fork and extend this feature
+                        # jellarr only supports pathInfos, configure these via Jellyfin UI
+                        # EnableInternetProviders = true;
+                        # AutomaticallyAddToCollection = true;
+                        # EnableTrickplayImageExtraction = true;
+                        # ExtractTrickplayImagesDuringLibraryScan = true;
                       };
                     }) cfg.libraries;
                   };
@@ -407,7 +424,46 @@ in
                       enableHwAcceleration = true;
                       enableHwEncoding = true;
                     };
+
+                    # Fetch plugins
+                    pluginRepositories = [
+                      {
+                        name = "Intro Skipper";
+                        enabled = true;
+                        url = "https://manifest.intro-skipper.org/manifest.json";
+                      }
+                      {
+                        name = "File Transformation";
+                        enabled = true;
+                        url = "https://www.iamparadox.dev/jellyfin/plugins/manifest.json";
+                      }
+                    ];
                   };
+
+                  # Configure plugins
+                  plugins = [
+                    {
+                      name = "Intro Skipper";
+                      configuration = {
+                        AutoDetectIntros = true;
+                        UpdateMediaSegments = true;
+                        CacheFingerprints = true;
+
+                        ScanCommercial = true;
+                        ScanCredits = true;
+                        ScanIntroduction = true;
+                        ScanPreview = true;
+                        ScanRecap = true;
+
+                        FileTransformationPluginEnabled = false;
+                        UseFileTransformationPlugin = false;
+                      };
+                    }
+                    {
+                      name = "File Transformation";
+                      configuration = { };
+                    }
+                  ];
 
                   startup = {
                     completeStartupWizard = true;
@@ -421,7 +477,10 @@ in
                 inherit extraGroups;
               };
               # Mirror extra groups from host with matching GIDs
-              users.groups = { jellyfin.gid = cfg.gid; } // lib.genAttrs cfg.extraGroups (group: {
+              users.groups = {
+                jellyfin.gid = cfg.gid;
+              }
+              // lib.genAttrs cfg.extraGroups (group: {
                 gid = hostConfig.users.groups.${group}.gid;
               });
             }

@@ -153,6 +153,10 @@ in
               hostPath = config.sops.secrets."qbit/plaintext_password".path;
               isReadOnly = true;
             };
+            "/run/secrets/jellarr/api-key" = {
+              hostPath = config.sops.secrets."jellarr/api-key".path;
+              isReadOnly = true;
+            };
           };
 
           # Network
@@ -195,6 +199,7 @@ in
                       "$.*.config.host.passwordConfirmation"
                       "$.*.config.host.apiKey"
                       "$.*.downloadClient.*.fields.password"
+                      "$.*.notification.*.fields.apiKey"
                     ];
                   };
 
@@ -224,7 +229,10 @@ in
                         CopyUsingHardlinks = true;
                         EnableMediaInfo = true;
                         RecycleBin = "";
-                        SetPermissionsLinux = false;
+                        SetPermissionsLinux = true;
+                        ChmodFolder = "0775";
+                        ChmodFile = "0664";
+                        ChownGroup = "media";
                       };
                       DownloadClient = {
                         EnableCompletedDownloadHandling = true;
@@ -241,9 +249,27 @@ in
                         movieCategory = "movies";
                       };
                     };
-                    customFormat = { };
+                    notification.Jellyfin = {
+                      implementation = "MediaBrowser";
+                      onImportComplete = true;
+                      onUpgrade = true;
+                      onRename = true;
+                      onMovieFileDelete = true;
+                      onMovieFileDeleteForUpgrade = true;
+                      fields = {
+                        host = (lib.custom.mkContainerNetworkConfig config cfg.network "jellyfin").containerIP;
+                        port = config.custom.services.jellyfin.port;
+                        apiKey = "/run/secrets/jellarr/api-key";
+                        useSsl = false;
+                        updateLibrary = true;
+                        notify = false;
+                        mapFrom = "/arr/media";
+                        mapTo = "/media";
+                      };
+                    };
                     qualityProfile = {
                       "2160p Efficient" = { };
+                      "1080p Efficient" = { };
                     };
                   };
                 };
