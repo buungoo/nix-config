@@ -1,3 +1,4 @@
+# TODO: setu a client identification certificate specific to samba_media user
 # Samba file sharing service
 # Configured to only allow SMB3 protocol for security
 # 1. sudo mkdir -p /mnt/storage/<user>
@@ -78,6 +79,16 @@
         "directory mask" = "0755";
         path = "/mnt/storage/%S";
         "valid users" = "%S";
+        "invalid users" = "samba_media";
+      };
+
+      # Read-only media share for remote Jellyfin library access
+      # 'sudo smbpasswd -a media' on first build
+      media = {
+        path = "/mnt/storage/arr/media";
+        browseable = "yes";
+        "read only" = "yes";
+        "valid users" = "bungo samba_media";
       };
     };
   };
@@ -129,6 +140,13 @@
     serviceConfig = {
       Type = lib.mkForce "simple";
     };
+  };
+
+  # Samba-only user for remote media access
+  users.users.samba_media = {
+    isSystemUser = true;
+    group = "nogroup";
+    shell = "/run/current-system/sw/bin/nologin";
   };
 
   # Create samba user and group

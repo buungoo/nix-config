@@ -29,9 +29,9 @@ in
 
           # Allow traffic to nas0's WireGuard IP and local network
           allowedIPs = [
-            "10.100.0.1/32"  # nas0 WireGuard IP
+            "10.100.0.1/32" # nas0 WireGuard IP
             "192.168.1.0/24" # nas0 local network
-            "10.0.0.0/16"    # container subnets (arr, immich, kanidm, dns, ca, mon)
+            "10.0.0.0/16" # container subnets (arr, immich, kanidm, dns, ca, mon)
           ];
 
           # Endpoint: nas0's domain
@@ -92,7 +92,8 @@ in
     mode = "0400";
   };
 
-} // lib.optionalAttrs isDarwin {
+}
+// lib.optionalAttrs isDarwin {
   # Override the launchd daemon to disable KeepAlive (macOS only)
   # This allows wg-quick down to actually stop the interface
   launchd.daemons.wg-quick-wg0.serviceConfig.KeepAlive = lib.mkForce false;

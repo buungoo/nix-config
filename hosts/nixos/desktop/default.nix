@@ -26,6 +26,14 @@
     ])
   ];
 
+  # QUIC kernel module for SMB over QUIC
+  boot.kernelModules = [ "quic" ];
+  boot.extraModulePackages = [
+    (pkgs.callPackage ../../../pkgs/common/quic-kernel-module {
+      kernel = config.boot.kernelPackages.kernel;
+    })
+  ];
+
   networking.networkmanager.enable = true;
 
   environment.systemPackages = [
@@ -34,6 +42,8 @@
     pkgs.wiremix
     pkgs.wl-clipboard
     pkgs.kdePackages.dolphin
+    pkgs.samba # SMB over QUIC client
+    pkgs.cifs-utils
   ];
 
   # Enable CUPS to print documents.

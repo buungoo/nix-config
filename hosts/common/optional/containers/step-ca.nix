@@ -129,7 +129,8 @@
         # (no bind mount = /var/lib/nixos-containers/step-ca/var/lib/step-ca-db on host)
         # Mount ACME certificates for step-ca web UI HTTPS
         "/etc/ssl/certs/step-ca" = {
-          hostPath = hostConfig.security.acme.certs."${hostConfig.custom.reverseProxy.virtualHosts.ca.domain}".directory;
+          hostPath =
+            hostConfig.security.acme.certs."${hostConfig.custom.reverseProxy.virtualHosts.ca.domain}".directory;
           isReadOnly = true;
         };
         # Mount SOPS secrets
@@ -155,7 +156,13 @@
       ];
 
       config = lib.mkMerge [
-        (lib.custom.mkContainerBaseConfig (net // { inherit (config.hostSpec) stateVersion; }))
+        (lib.custom.mkContainerBaseConfig (
+          net
+          // {
+            inherit (config.hostSpec) stateVersion;
+            dns = [ net.gatewayIP ];
+          }
+        ))
         {
           environment.systemPackages = with pkgs; [
             step-ca

@@ -1,3 +1,38 @@
+# File: qbittorrent.nix
+# What: Torrent dirs
+# Permissions: 2775
+# Owner: qbittorrent:media
+# Why: Setgid inherits media group; group write for hardlinks
+# ────────────────────────────────────────
+# File: qbittorrent.nix
+# What: UMask
+# Permissions: 0002
+# Owner: —
+# Why: Files created as 0664, dirs as 2775
+# ────────────────────────────────────────
+# File: sonarr.nix
+# What: /arr/media/tv
+# Permissions: 0755
+# Owner: sonarr:media
+# Why: Sonarr owns dir (can add/delete/rename); group read-only
+# ────────────────────────────────────────
+# File: radarr.nix
+# What: /arr/media/movies
+# Permissions: 0755
+# Owner: radarr:media
+# Why: Radarr owns dir; group read-only
+# ────────────────────────────────────────
+# File: sonarr/radarr
+# What: SetPermissionsLinux
+# Permissions: false
+# Owner: —
+# Why: Don't touch file permissions; qbittorrent's 0664 is source of truth
+# ────────────────────────────────────────
+# File: jellyfin.nix
+# What: No media dirs
+# Permissions: —
+# Owner: —
+# Why: Only reads via media group
 {
   config,
   pkgs,

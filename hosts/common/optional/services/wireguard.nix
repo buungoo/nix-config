@@ -16,7 +16,7 @@
   };
   networking.wireguard.interfaces = {
     wg0 = {
-      # Server IP in the VPN subnet (from hostSpec)
+      # Server IP in the VPN subnet
       ips = [
         "${config.hostSpec.networking.wireguardIP}/24"
       ];

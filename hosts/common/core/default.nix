@@ -65,8 +65,6 @@ in
     overlays = [
       outputs.overlays.default
       outputs.overlays.quic-kernel-module-overlay
-    ]
-    ++ lib.optionals (lib.hasPrefix "nas" config.hostSpec.hostName) [
       outputs.overlays.samba-overlay
     ];
     config = {
