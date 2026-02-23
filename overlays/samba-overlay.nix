@@ -1,10 +1,10 @@
 final: prev: {
   samba = prev.samba.overrideAttrs (oldAttrs: rec {
-    version = "4.23.4";
+    version = "4.23.5";
 
     src = prev.fetchurl {
       url = "mirror://samba/samba/samba-${version}.tar.gz";
-      hash = "sha256-r0KdB4qG8c4W0NHs7jXEKjYQeQtHuERo8xKEqMQGAUA=";
+      hash = "sha256-WTpD3dDVeQIjffp2iI97Ast/x3RxETacsx4SbbSDa58=";
     };
 
     # Keep the essential patches from the original package
