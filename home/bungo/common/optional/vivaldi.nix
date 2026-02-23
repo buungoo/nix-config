@@ -1,3 +1,5 @@
+# Add client cert using
+# nix-shell -p nss.tools --run 'pk12util -d sql:$HOME/.pki/nssdb -i <cert>.p12' on nixos
 {
   pkgs,
   hostSpec,
