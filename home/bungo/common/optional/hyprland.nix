@@ -27,6 +27,8 @@
   wayland.windowManager.hyprland = {
     enable = true;
 
+    plugins = [ pkgs.hyprlandPlugins.hy3 ];
+
     settings = {
       "$mod" = "SUPER";
 
@@ -46,7 +48,7 @@
         gaps_in = 5;
         gaps_out = 10;
         border_size = 2;
-        layout = "dwindle";
+        layout = "hy3";
       };
 
       decoration = {

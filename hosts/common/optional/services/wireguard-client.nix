@@ -17,7 +17,7 @@ in
   networking.wg-quick.interfaces = {
     wg0 = {
       # Client IP in the VPN subnet
-      address = [ "10.100.0.3/24" ];
+      address = [ "10.100.0.4/24" ];
 
       privateKeyFile = config.sops.secrets."wireguard/private_key".path;
 
@@ -31,6 +31,7 @@ in
           allowedIPs = [
             "10.100.0.1/32"  # nas0 WireGuard IP
             "192.168.1.0/24" # nas0 local network
+            "10.0.0.0/16"    # container subnets (arr, immich, kanidm, dns, ca, mon)
           ];
 
           # Endpoint: nas0's domain
@@ -56,6 +57,31 @@ in
         #   persistentKeepalive = 25;
         # }
       ];
+    };
+  };
+
+  # NOTE: Remove this after server migration
+  boot.kernel.sysctl."net.ipv4.ip_forward" = 1;
+  networking.firewall.allowedTCPPorts = [ 8096 ];
+  networking.nftables = {
+    enable = true;
+    tables.jellyfin-forward = {
+      family = "ip";
+      content = ''
+        chain prerouting {
+          type nat hook prerouting priority dstnat; policy accept;
+          tcp dport 8096 dnat to 10.0.1.2:8096
+        }
+        chain forward {
+          type filter hook forward priority filter; policy accept;
+          ip daddr 10.0.1.2 tcp dport 8096 oifname "wg0" counter accept
+          ct state established,related counter accept
+        }
+        chain postrouting {
+          type nat hook postrouting priority srcnat; policy accept;
+          ip daddr 10.0.1.2 oifname "wg0" masquerade
+        }
+      '';
     };
   };
 
