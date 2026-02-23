@@ -12,6 +12,7 @@
     ./prowlarr.nix
     ./radarr.nix
     ./jellyseerr.nix
+    ./samba-client.nix
     # ./mediamanager.nix
   ];
 }

@@ -26,13 +26,8 @@
     ])
   ];
 
-  # QUIC kernel module for SMB over QUIC
-  boot.kernelModules = [ "quic" ];
-  boot.extraModulePackages = [
-    (pkgs.callPackage ../../../pkgs/common/quic-kernel-module {
-      kernel = config.boot.kernelPackages.kernel;
-    })
-  ];
+  # SMB over QUIC client for remote NAS access
+  custom.services.sambaClient.enable = true;
 
   networking.networkmanager.enable = true;
 
@@ -42,8 +37,6 @@
     pkgs.wiremix
     pkgs.wl-clipboard
     pkgs.kdePackages.dolphin
-    pkgs.samba # SMB over QUIC client
-    pkgs.cifs-utils
   ];
 
   # Enable CUPS to print documents.
