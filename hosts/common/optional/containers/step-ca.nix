@@ -461,21 +461,24 @@
     };
 
   # Host systemd configuration
+  # Boot order: HAProxy starts first (using persistent CA bundle from disk),
+  # then the step-ca container starts so step-ca can reach auth.bungos.xyz
+  # via HAProxy for OIDC provisioner initialization.
   systemd = lib.mkMerge [
     (lib.custom.mkContainerSystemd "step-ca" { })
     {
+      # Ensure the container starts after HAProxy so step-ca can reach
+      # the OIDC provider (auth.bungos.xyz) through HAProxy at boot time
+      services."container@step-ca" = {
+        after = [ "haproxy.service" ];
+        wants = [ "haproxy.service" ];
+      };
+
       # Also ensure certificate files are group-readable after step-ca creates them
       services.step-ca-fix-cert-permissions = {
         description = "Fix step-ca certificate permissions for nginx mTLS";
         after = [ "container@step-ca.service" ];
-        wantedBy = [
-          "nginx.service"
-          "haproxy.service"
-        ];
-        before = [
-          "nginx.service"
-          "haproxy.service"
-        ];
+        wantedBy = [ "multi-user.target" ];
         serviceConfig = {
           Type = "oneshot";
           RemainAfterExit = true;

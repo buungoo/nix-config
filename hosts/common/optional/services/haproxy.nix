@@ -39,6 +39,11 @@ let
   # mTLS CA bundle from step-ca
   mTLSCaFile = "/mnt/storage/step-ca/.step/certs/ca_bundle.crt";
 
+  # Container bridge subnets (treated as LAN, no mTLS required)
+  containerSubnets = lib.concatStringsSep " " (
+    lib.mapAttrsToList (_: net: net.subnet) config.hostSpec.networking.containerNetworks
+  );
+
   # Port allocation for internal HAProxy frontends
   # We need unique ports for each service's mTLS and LAN frontends
   # Strategy: Use a sorted list of service names to ensure consistent port assignment
@@ -172,7 +177,7 @@ in
         option tcplog
 
         # Define LAN network and WireGuard VPN (IPv4 and IPv6)
-        acl is_lan src ${config.hostSpec.networking.localSubnet} ${config.hostSpec.networking.wireguardIPv4Subnet} ${config.hostSpec.networking.localIPv6Subnet} ${config.hostSpec.networking.wireguardIPv6Subnet}
+        acl is_lan src ${config.hostSpec.networking.localSubnet} ${config.hostSpec.networking.wireguardIPv4Subnet} ${config.hostSpec.networking.localIPv6Subnet} ${config.hostSpec.networking.wireguardIPv6Subnet} ${containerSubnets}
 
         # Inspect SNI to determine routing
         tcp-request inspect-delay 5s
@@ -251,15 +256,16 @@ in
         '';
       };
 
-      # Ensure HAProxy waits for combined certificates and step-ca
+      # Ensure HAProxy waits for combined certificates
+      # Note: HAProxy uses the persistent CA bundle from /mnt/storage/step-ca/
+      # and does NOT need the step-ca container running to start.
+      # The container depends on HAProxy (for OIDC discovery), not the other way around.
       haproxy = {
         after = [
           "haproxy-cert-combine.service"
-          "container@step-ca.service"
         ];
         wants = [
           "haproxy-cert-combine.service"
-          "container@step-ca.service"
         ];
       };
 
