@@ -28,9 +28,15 @@
             type = lib.types.str;
             description = "Landing page URL after authentication";
           };
+          public = lib.mkOption {
+            type = lib.types.bool;
+            default = false;
+            description = "Create a public OAuth2 client (no secret, PKCE-only, allows http://localhost redirects). For native/mobile apps.";
+          };
           secretFile = lib.mkOption {
-            type = lib.types.str;
-            description = "Path to the file containing the client secret";
+            type = lib.types.nullOr lib.types.str;
+            default = null;
+            description = "Path to the file containing the client secret. Required for confidential clients, must be null for public clients.";
           };
           enableLegacyCrypto = lib.mkOption {
             type = lib.types.bool;

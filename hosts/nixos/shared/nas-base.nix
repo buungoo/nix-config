@@ -76,4 +76,5 @@
   custom.services.prowlarr.enable = true;
   custom.services.radarr.enable = true;
   custom.services.jellyseerr.enable = true;
+  custom.services.netbird.enable = true;
 }

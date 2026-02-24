@@ -33,7 +33,8 @@ let
 
   # Only virtualHosts with backends get HAProxy routing
   proxiedHosts = lib.filterAttrs (_: vh: vh.backendHost != null) allHosts;
-  publicHosts = lib.filterAttrs (_: vh: vh.proxyWan) proxiedHosts;
+  publicHosts = lib.filterAttrs (_: vh: vh.proxyWan && vh.mTLS) proxiedHosts;
+  publicNoMtlsHosts = lib.filterAttrs (_: vh: vh.proxyWan && !vh.mTLS) proxiedHosts;
   lanHosts = lib.filterAttrs (_: vh: !vh.proxyWan) proxiedHosts;
 
   # mTLS CA bundle from step-ca
@@ -77,6 +78,10 @@ let
     use_backend https-${name}-mtls-backend if is_${name} !is_lan
     use_backend https-${name}-lan-backend if is_${name} is_lan'';
 
+  # Generate backend routing for public services without mTLS (WAN + LAN, no client cert)
+  mkPublicNoMtlsRouting = name: cfg: ''
+    use_backend https-${name}-lan-backend if is_${name}'';
+
   # Generate backend routing for LAN-only services
   mkLanRouting = name: cfg: ''use_backend https-${name}-lan-backend if is_${name} is_lan'';
 
@@ -86,38 +91,81 @@ let
       mode tcp
       server ${name}-${type} 127.0.0.1:${toString port}'';
 
+  # Generate path-based ACLs and use_backend rules for extraBackends
+  mkExtraBackendRouting = name: cfg:
+    lib.concatStringsSep "\n      " (
+      lib.mapAttrsToList (
+        ebName: eb: ''
+      acl is_${name}_${ebName} path_beg ${eb.pathPrefix}
+      use_backend ${name}-${ebName} if is_${name}_${ebName}''
+      ) cfg.extraBackends
+    );
+
   # Generate HTTP frontend with mTLS
   mkMtlsFrontend = name: cfg: ''
     frontend https-${name}-mtls
-      bind 127.0.0.1:${toString (getMtlsPort name)} ssl crt /var/lib/acme/${cfg.domain}/full.pem ca-file ${mTLSCaFile} verify required
+      bind 127.0.0.1:${toString (getMtlsPort name)} ssl crt /var/lib/acme/${cfg.domain}/full.pem ca-file ${mTLSCaFile} verify required${
+        if cfg.backendH2 then " alpn h2,http/1.1" else ""
+      }
       mode http
-
+${lib.optionalString cfg.backendH2 ''
+      # Extended timeouts for gRPC/HTTP2 long-lived connections
+      timeout client 3600s
+      timeout server 3600s
+''}
       # Set headers
       http-request set-header X-Forwarded-Proto https
       http-request set-header X-Forwarded-For %[src]
       http-request add-header X-SSL-Client-Verify %[ssl_c_verify]
       http-request add-header X-SSL-Client-DN %{+Q}[ssl_c_s_dn]
-
+${lib.optionalString (cfg.extraBackends != { }) ''
+      # Path-based routing to extra backends
+      ${mkExtraBackendRouting name cfg}
+''}
       default_backend ${name}'';
 
   # Generate HTTP frontend without mTLS (LAN only)
   mkLanFrontend = name: cfg: ''
     frontend https-${name}-lan
-      bind 127.0.0.1:${toString (getLanPort name)} ssl crt /var/lib/acme/${cfg.domain}/full.pem
+      bind 127.0.0.1:${toString (getLanPort name)} ssl crt /var/lib/acme/${cfg.domain}/full.pem${
+        if cfg.backendH2 then " alpn h2,http/1.1" else ""
+      }
       mode http
-
+${lib.optionalString cfg.backendH2 ''
+      # Extended timeouts for gRPC/HTTP2 long-lived connections
+      timeout client 3600s
+      timeout server 3600s
+''}
       http-request set-header X-Forwarded-Proto https
       http-request set-header X-Forwarded-For %[src]
-
+${lib.optionalString (cfg.extraBackends != { }) ''
+      # Path-based routing to extra backends
+      ${mkExtraBackendRouting name cfg}
+''}
       default_backend ${name}'';
 
   # Generate HTTP backend
   mkHttpBackend = name: cfg: ''
     backend ${name}
-      mode http
+      mode http${lib.optionalString cfg.backendH2 "\n      timeout server 3600s"}
       server ${name} ${cfg.backendHost}:${toString cfg.backendPort}${
         if cfg.backendSSL then " ssl verify none" else ""
+      }${
+        if cfg.backendH2 then " proto h2" else ""
       }'';
+
+  # Generate extra path-based backends for a virtualHost
+  mkExtraBackends = name: cfg:
+    lib.concatStringsSep "\n\n      " (
+      lib.mapAttrsToList (
+        ebName: eb: ''
+    backend ${name}-${ebName}
+      mode http${lib.optionalString cfg.backendH2 "\n      timeout server 3600s"}
+      server ${name}-${ebName} ${eb.backendHost}:${toString eb.backendPort}${
+          if cfg.backendH2 then " proto h2" else ""
+        }''
+      ) cfg.extraBackends
+    );
 in
 {
   imports = [ ./cloudflare-dyndns.nix ];
@@ -189,6 +237,9 @@ in
         # Routing rules for public domains (WAN with mTLS, LAN without)
         ${lib.concatStringsSep "\n        " (lib.mapAttrsToList mkPublicRouting publicHosts)}
 
+        # Routing rules for public domains without mTLS (WAN + LAN, no client cert)
+        ${lib.concatStringsSep "\n        " (lib.mapAttrsToList mkPublicNoMtlsRouting publicNoMtlsHosts)}
+
         # Routing rules for LAN-only domains
         ${lib.concatStringsSep "\n        " (lib.mapAttrsToList mkLanRouting lanHosts)}
 
@@ -209,6 +260,16 @@ in
 
       # HTTP backend definitions
       ${lib.concatStringsSep "\n\n      " (lib.mapAttrsToList mkHttpBackend proxiedHosts)}
+
+      # Extra path-based backends
+      ${lib.concatStringsSep "\n\n      " (
+        lib.filter (s: s != "") (
+          lib.mapAttrsToList (
+            name: cfg:
+            if cfg.extraBackends != { } then mkExtraBackends name cfg else ""
+          ) proxiedHosts
+        )
+      )}
     '';
   };
 

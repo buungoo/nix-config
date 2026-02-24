@@ -29,7 +29,12 @@
             proxyWan = lib.mkOption {
               type = lib.types.bool;
               default = true;
-              description = "Whether the reverse proxy routes WAN traffic to this service using mTLS";
+              description = "Whether the reverse proxy routes WAN traffic to this service";
+            };
+            mTLS = lib.mkOption {
+              type = lib.types.bool;
+              default = true;
+              description = "Require mTLS (step-ca client certificate) for WAN access. Only applies when proxyWan = true.";
             };
             backendHost = lib.mkOption {
               type = lib.types.nullOr lib.types.str;
@@ -45,6 +50,33 @@
               type = lib.types.bool;
               default = false;
               description = "Whether the backend uses SSL";
+            };
+            backendH2 = lib.mkOption {
+              type = lib.types.bool;
+              default = false;
+              description = "Use HTTP/2 for backend connections (required for gRPC services)";
+            };
+            extraBackends = lib.mkOption {
+              type = lib.types.attrsOf (
+                lib.types.submodule {
+                  options = {
+                    pathPrefix = lib.mkOption {
+                      type = lib.types.str;
+                      description = "URL path prefix to match (e.g. /signalexchange.SignalExchange/)";
+                    };
+                    backendHost = lib.mkOption {
+                      type = lib.types.str;
+                      description = "Backend host IP address for this path";
+                    };
+                    backendPort = lib.mkOption {
+                      type = lib.types.port;
+                      description = "Backend port for this path";
+                    };
+                  };
+                }
+              );
+              default = { };
+              description = "Path-based backend overrides. Traffic matching a pathPrefix routes to its backend instead of the default.";
             };
           };
         }

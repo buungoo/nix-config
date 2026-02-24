@@ -168,7 +168,9 @@ in
               # OAuth2 clients declared by individual services via custom.kanidm.oauthClients
               systems.oauth2 = lib.mapAttrs (_: client: {
                 inherit (client) displayName originUrl originLanding enableLegacyCrypto preferShortUsername;
-                basicSecretFile = client.secretFile;
+                inherit (client) public;
+                enableLocalhostRedirects = client.public;
+                basicSecretFile = if client.public then null else client.secretFile;
                 scopeMaps = client.scopeMap;
               }) hostConfig.custom.kanidm.oauthClients;
             };

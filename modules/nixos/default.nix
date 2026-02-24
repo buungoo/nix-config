@@ -13,6 +13,7 @@
     ./radarr.nix
     ./jellyseerr.nix
     ./samba-client.nix
+    ./netbird.nix
     # ./mediamanager.nix
   ];
 }
