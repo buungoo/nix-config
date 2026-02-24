@@ -36,7 +36,6 @@
     pkgs.pulsemixer # TUI audio mixer
     pkgs.wiremix
     pkgs.wl-clipboard
-    pkgs.kdePackages.dolphin
   ];
 
   # Enable CUPS to print documents.

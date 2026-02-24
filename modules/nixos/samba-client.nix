@@ -66,6 +66,7 @@ in
         client smb transports = quic
         tls certfile = ${config.sops.secrets."samba-client/cert".path}
         tls keyfile = ${config.sops.secrets."samba-client/key".path}
+        tls trust system cas = yes
         tls verify peer = ca_and_name
     '';
   };
