@@ -29,6 +29,26 @@ in
       type = lib.types.path;
       description = "Path to the client TLS private key (PEM)";
     };
+
+    credentials = lib.mkOption {
+      type = lib.types.attrsOf (lib.types.submodule {
+        options = {
+          username = lib.mkOption {
+            type = lib.types.str;
+            description = "SMB username for authentication";
+          };
+          passwordFile = lib.mkOption {
+            type = lib.types.path;
+            description = "Path to file containing the SMB password (e.g. a sops secret path)";
+          };
+        };
+      });
+      default = { };
+      description = ''
+        Named SMB credential sets. Each generates a credentials file
+        at /etc/samba/credentials/<name> for use with mount.cifs.
+      '';
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -55,5 +75,30 @@ in
         tls trust system cas = yes
         tls verify peer = ca_and_name
     '';
+
+    # Credential files for mount.cifs
+    systemd.tmpfiles.rules = lib.optionals (cfg.credentials != { }) [
+      "d /etc/samba/credentials 0700 root root -"
+    ];
+
+    systemd.services = lib.mapAttrs' (name: cred:
+      lib.nameValuePair "smb-credentials-${name}" {
+        description = "Generate SMB credentials file for ${name}";
+        after = [ "sops-nix.service" ];
+        wants = [ "sops-nix.service" ];
+        wantedBy = [ "multi-user.target" ];
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+        };
+        script = ''
+          install -m 0600 /dev/null '/etc/samba/credentials/${name}'
+          {
+            printf '%s\n' 'username=${cred.username}'
+            printf 'password=%s\n' "$(cat '${cred.passwordFile}')"
+          } > '/etc/samba/credentials/${name}'
+        '';
+      }
+    ) cfg.credentials;
   };
 }

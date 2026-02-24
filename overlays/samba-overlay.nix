@@ -15,4 +15,11 @@ final: prev: {
       || builtins.match ".*fix-makeflags-parsing.*" (builtins.baseNameOf p) != null
     ) (oldAttrs.patches or [ ]);
   });
+
+  # Ensure KIO SMB worker uses the overlaid samba with QUIC support
+  kdePackages = prev.kdePackages // {
+    kio-extras = prev.kdePackages.kio-extras.override {
+      samba = final.samba;
+    };
+  };
 }

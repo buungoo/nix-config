@@ -1,4 +1,10 @@
 # Dolphin file manager with KIO SMB support
+#
+# TODO: KIO SMB worker silently fails with QUIC transport (no network traffic
+# reaches the server). smbclient CLI works fine with the same smb.conf/samba
+# 4.23.5/ngtcp2 stack. Likely a bug in how KIO's SMB worker initializes
+# libsmbclient's QUIC context. TCP fallback also didn't work in testing.
+# For now, use `smbclient` from the terminal.
 { pkgs, ... }:
 {
   home.packages = with pkgs; [
@@ -8,13 +14,12 @@
     kdePackages.ffmpegthumbs
   ];
 
-  # SMB bookmark for NAS media share
-  xdg.dataFile."kio/bookmarks.xml".text = ''
-    <?xml version="1.0" encoding="UTF-8"?>
-    <xbel>
-      <bookmark href="smb://files.bungos.xyz/media">
-        <title>NAS Media</title>
-      </bookmark>
-    </xbel>
+  # Network shortcut for NAS media share (visible in Dolphin's Network folder)
+  xdg.dataFile."remoteview/nas-media.desktop".text = ''
+    [Desktop Entry]
+    Type=Link
+    URL[$e]=smb://samba_media@files.bungos.xyz/media
+    Icon=network-server
+    Name=NAS Media
   '';
 }

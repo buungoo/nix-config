@@ -31,6 +31,10 @@
     enable = true;
     tlsCertFile = config.sops.secrets."samba-client/cert".path;
     tlsKeyFile = config.sops.secrets."samba-client/key".path;
+    credentials.samba_media = {
+      username = "samba_media";
+      passwordFile = config.sops.secrets."samba-client/samba_media".path;
+    };
   };
 
   sops.secrets = {
@@ -39,6 +43,7 @@
       mode = "0640";
       group = "users";
     };
+    "samba-client/samba_media".mode = "0400";
   };
 
   networking.networkmanager.enable = true;
