@@ -27,7 +27,19 @@
   ];
 
   # SMB over QUIC client for remote NAS access
-  custom.services.sambaClient.enable = true;
+  custom.services.sambaClient = {
+    enable = true;
+    tlsCertFile = config.sops.secrets."samba-client/cert".path;
+    tlsKeyFile = config.sops.secrets."samba-client/key".path;
+  };
+
+  sops.secrets = {
+    "samba-client/cert".mode = "0644";
+    "samba-client/key" = {
+      mode = "0640";
+      group = "users";
+    };
+  };
 
   networking.networkmanager.enable = true;
 
