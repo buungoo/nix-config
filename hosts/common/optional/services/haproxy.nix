@@ -97,9 +97,17 @@ let
       lib.mapAttrsToList (
         ebName: eb: ''
       acl is_${name}_${ebName} path_beg ${eb.pathPrefix}
+${lib.optionalString (eb.allowMethods != null) ''
+      acl is_${name}_${ebName}_method method ${lib.concatStringsSep " " eb.allowMethods}
+      http-request deny if is_${name}_${ebName} !is_${name}_${ebName}_method''}
+${lib.optionalString (eb.hostHeader != null) ''
+      http-request set-header Host ${eb.hostHeader} if is_${name}_${ebName}''}
       use_backend ${name}-${ebName} if is_${name}_${ebName}''
       ) cfg.extraBackends
     );
+
+  # Escape for HAProxy "string" directive (double-quoted)
+  escapeHaproxyString = s: lib.replaceStrings [ "\\" "\"" ] [ "\\\\" "\\\"" ] s;
 
   # Generate HTTP frontend with mTLS
   mkMtlsFrontend = name: cfg: ''
@@ -118,8 +126,18 @@ ${lib.optionalString cfg.backendH2 ''
       http-request set-header X-Forwarded-For %[src]
       http-request add-header X-SSL-Client-Verify %[ssl_c_verify]
       http-request add-header X-SSL-Client-DN %{+Q}[ssl_c_s_dn]
+${lib.optionalString (cfg.oidcDiscovery != null) ''
+      acl is_${name}_oidc_discovery path -i ${cfg.oidcDiscovery.path}
+      http-request return status 200 content-type application/json string "${escapeHaproxyString cfg.oidcDiscovery.json}" if is_${name}_oidc_discovery
+''}
 ${lib.optionalString (cfg.extraBackends != { }) ''
       # Path-based routing to extra backends
+      ${lib.optionalString (cfg.extraBackends ? oidcToken) ''
+      # Rate limit OIDC token exchange by client IP
+      stick-table type ip size 10k expire 10m store http_req_rate(10s),http_req_rate(10m)
+      http-request track-sc0 src if is_${name}_oidcToken
+      http-request deny if is_${name}_oidcToken { sc_http_req_rate(0) gt 5 } || { sc_http_req_rate(1) gt 30 }
+''}
       ${mkExtraBackendRouting name cfg}
 ''}
       default_backend ${name}'';
@@ -138,6 +156,10 @@ ${lib.optionalString cfg.backendH2 ''
 ''}
       http-request set-header X-Forwarded-Proto https
       http-request set-header X-Forwarded-For %[src]
+${lib.optionalString (cfg.oidcDiscovery != null) ''
+      acl is_${name}_oidc_discovery path -i ${cfg.oidcDiscovery.path}
+      http-request return status 200 content-type application/json string "${escapeHaproxyString cfg.oidcDiscovery.json}" if is_${name}_oidc_discovery
+''}
 ${lib.optionalString (cfg.extraBackends != { }) ''
       # Path-based routing to extra backends
       ${mkExtraBackendRouting name cfg}
@@ -160,9 +182,13 @@ ${lib.optionalString (cfg.extraBackends != { }) ''
       lib.mapAttrsToList (
         ebName: eb: ''
     backend ${name}-${ebName}
-      mode http${lib.optionalString cfg.backendH2 "\n      timeout server 3600s"}
+      mode http${lib.optionalString (if eb.backendH2 == null then cfg.backendH2 else eb.backendH2) "\n      timeout server 3600s"}
       server ${name}-${ebName} ${eb.backendHost}:${toString eb.backendPort}${
-          if cfg.backendH2 then " proto h2" else ""
+          if eb.backendSSL then " ssl verify none" else ""
+        }${
+          if eb.backendSNI != null then " sni str(${eb.backendSNI})" else ""
+        }${
+          if (if eb.backendH2 == null then cfg.backendH2 else eb.backendH2) then " proto h2" else ""
         }''
       ) cfg.extraBackends
     );

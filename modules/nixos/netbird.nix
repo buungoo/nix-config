@@ -11,6 +11,18 @@ let
   cfg = config.custom.services.netbird;
   authDomain = config.custom.reverseProxy.virtualHosts.auth.domain;
   sopsFolder = builtins.toString inputs.nix-secrets + "/sops";
+  # OIDC workaround overview (enableTokenProxy = true):
+  # 1) Discovery is served from netbird.* but points auth + jwks to auth.*
+  # 2) Browser auth happens on auth.* (mTLS enforced).
+  # 3) App receives the auth code via localhost redirect.
+  # 4) App posts code + PKCE verifier to netbird.* /oauth2/token (no mTLS).
+  # 5) HAProxy proxies token exchange to Kanidm.
+  oidcDiscoveryJson = builtins.toJSON {
+    issuer = "https://${authDomain}/oauth2/openid/netbird";
+    authorization_endpoint = "https://${authDomain}/ui/oauth2";
+    token_endpoint = "https://${cfg.domain}/oauth2/token";
+    jwks_uri = "https://${authDomain}/oauth2/openid/netbird/public_key.jwk";
+  };
 in
 {
   options.custom.services.netbird = {
@@ -20,6 +32,11 @@ in
       type = lib.types.str;
       default = "netbird.${config.hostSpec.domain}";
       description = "FQDN for the Netbird server";
+    };
+    enableTokenProxy = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Serve custom OIDC discovery + proxy /oauth2/token via the Netbird domain (workaround for clients without mTLS support)";
     };
   };
 
@@ -31,7 +48,10 @@ in
       enableNginx = false; # HAProxy handles reverse proxying
 
       management = {
-        oidcConfigEndpoint = "https://${authDomain}/oauth2/openid/netbird/.well-known/openid-configuration";
+        oidcConfigEndpoint =
+          if cfg.enableTokenProxy
+          then "https://${cfg.domain}/oauth2/openid/netbird/.well-known/openid-configuration"
+          else "https://${authDomain}/oauth2/openid/netbird/.well-known/openid-configuration";
         turnDomain = cfg.domain; # Required by module; overridden in settings below
         singleAccountModeDomain = config.hostSpec.domain;
         dnsDomain = "netbird.selfhosted";
@@ -79,9 +99,12 @@ in
             Audience = "netbird";
             ClientID = "netbird";
             ClientSecret = "";
+            AuthorizationEndpoint = "https://${authDomain}/oauth2/authorize";
             Scope = "openid profile email";
             RedirectURLs = [ "http://localhost:53000" ];
             UseIDToken = true;
+          } // lib.optionalAttrs cfg.enableTokenProxy {
+            TokenEndpoint = "https://${cfg.domain}/oauth2/token";
           };
 
           # No IDP manager integration (users created on first OIDC login)
@@ -107,6 +130,20 @@ in
         pathPrefix = "/signalexchange.SignalExchange/";
         backendHost = "127.0.0.1";
         backendPort = config.services.netbird.server.signal.port;
+      };
+    } // lib.optionalAttrs cfg.enableTokenProxy {
+      extraBackends.oidcToken = {
+        pathPrefix = "/oauth2/token";
+        backendHost = config.custom.reverseProxy.virtualHosts.auth.backendHost;
+        backendPort = config.custom.reverseProxy.virtualHosts.auth.backendPort;
+        backendSSL = true;
+        backendSNI = config.custom.reverseProxy.virtualHosts.auth.domain;
+        hostHeader = config.custom.reverseProxy.virtualHosts.auth.domain;
+        allowMethods = [ "POST" ];
+      };
+      oidcDiscovery = {
+        path = "/oauth2/openid/netbird/.well-known/openid-configuration";
+        json = oidcDiscoveryJson;
       };
     };
 
