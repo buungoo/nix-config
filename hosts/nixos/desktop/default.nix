@@ -65,6 +65,21 @@
     kdeconnect.enable = true;
   };
 
+  services.netbird.clients.desktop = {
+    port = 51820;
+    interface = "nb-desktop";
+    logLevel = "info";
+    config = {
+      ManagementURL = {
+        Scheme = "https";
+        Host = "netbird.bungos.xyz:443";
+      };
+    };
+  };
+
+  # Ensure the UI wrapper is present for SSO login on a non-X11 desktop.
+  services.netbird.ui.enable = true;
+
   hostSpec = {
     hostName = "desktop";
     hostAlias = "Meshy";
