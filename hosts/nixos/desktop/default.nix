@@ -66,7 +66,7 @@
   };
 
   services.netbird.clients.desktop = {
-    port = 51820;
+    port = 51821;
     interface = "nb-desktop";
     logLevel = "info";
     config = {
@@ -76,6 +76,10 @@
       };
     };
   };
+
+  networking.firewall.allowedUDPPorts = [
+    config.services.netbird.clients.desktop.port
+  ];
 
   # Ensure the UI wrapper is present for SSO login on a non-X11 desktop.
   services.netbird.ui.enable = true;

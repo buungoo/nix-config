@@ -128,13 +128,23 @@ in
                 Password = null;
               }
             ];
-            # TODO: Self-host coturn on this host (3478/udp + 5349/tcp) with a small relay range and
-            # SOPS-backed credentials to avoid relying on Google's public STUN.
-
             TURNConfig = {
-              Turns = [ ];
+              Turns = lib.mkForce [
+                {
+                  Proto = "udp";
+                  URI = "turn:${cfg.domain}:3478";
+                  Username = "netbird";
+                  Password = { _secret = config.sops.secrets."netbird/turn-password".path; };
+                }
+                {
+                  Proto = "tcp";
+                  URI = "turn:${cfg.domain}:3478";
+                  Username = "netbird";
+                  Password = { _secret = config.sops.secrets."netbird/turn-password".path; };
+                }
+              ];
               TimeBasedCredentials = false;
-              Secret = "unused";
+              Secret = "";
             };
 
             Signal = {
@@ -170,12 +180,25 @@ in
 
         signal = { };
 
-        coturn.enable = false;
+        coturn = {
+          enable = true;
+          domain = cfg.domain;
+          user = "netbird";
+          passwordFile = config.sops.secrets."netbird/turn-password".path;
+          useAcmeCertificates = false;
+        };
+      };
+
+      services.coturn = {
+        no-tls = true;
+        no-dtls = true;
+        min-port = 49160;
+        max-port = 49200;
       };
 
       # NetBird client on the server (declarative enrollment via setup key)
       services.netbird.clients.server = {
-        port = 51820;
+        port = 51821;
         interface = "nb-server";
         logLevel = "info";
         config = {
@@ -190,6 +213,20 @@ in
         #   readlink -f /run/current-system/sw/bin/netbird-server
         # Show status:
         #   /nix/store/<...>-netbird-client-<...>-wrapper-server/bin/netbird-server status
+      };
+
+      networking.firewall.allowedUDPPorts = [
+        config.services.netbird.clients.server.port
+      ];
+
+      systemd.services.netbird-server-login.serviceConfig = {
+        Environment = [
+          "HOME=/var/lib/netbird-server"
+          "XDG_CONFIG_HOME=/var/lib/netbird-server/.config"
+        ];
+        StateDirectory = "netbird-server";
+        StateDirectoryMode = "0700";
+        WorkingDirectory = "/var/lib/netbird-server";
       };
 
       custom.reverseProxy.virtualHosts.netbird = {
@@ -300,6 +337,13 @@ in
         owner = "root";
         group = "root";
         mode = "0400";
+      };
+
+      sops.secrets."netbird/turn-password" = {
+        sopsFile = "${sopsFolder}/${config.hostSpec.hostName}.yaml";
+        owner = "root";
+        group = "turnserver";
+        mode = "0440";
       };
     }
   ]);
