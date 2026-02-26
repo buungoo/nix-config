@@ -61,6 +61,7 @@ in
           "::1/128 allow"
           "${config.hostSpec.networking.localSubnet} allow"
           "10.0.0.0/8 allow" # Allow container networks
+          "100.64.0.0/10 allow" # NetBird peer subnet
         ];
 
         # Performance tuning
@@ -99,14 +100,13 @@ in
         local-zone = [ ''"${config.hostSpec.domain}." transparent'' ];
 
         # Dynamically generated from custom.reverseProxy.virtualHosts
-        local-data =
-          [
-            # Apex domain
-            ''"${config.hostSpec.domain}. A ${config.hostSpec.networking.localIP}"''
-          ]
-          ++ (lib.mapAttrsToList (
-            _: vh: ''"${vh.domain}. A ${config.hostSpec.networking.localIP}"''
-          ) config.custom.reverseProxy.virtualHosts);
+        local-data = [
+          # Apex domain
+          ''"${config.hostSpec.domain}. A ${config.hostSpec.networking.localIP}"''
+        ]
+        ++ (lib.mapAttrsToList (
+          _: vh: ''"${vh.domain}. A ${config.hostSpec.networking.localIP}"''
+        ) config.custom.reverseProxy.virtualHosts);
 
         # Allow local data to be returned for private domains
         # but forward everything else (like TXT records for ACME)

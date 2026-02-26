@@ -80,6 +80,13 @@
   # Ensure the UI wrapper is present for SSO login on a non-X11 desktop.
   services.netbird.ui.enable = true;
 
+  # Allow the desktop user to talk to the hardened NetBird daemon socket.
+  users.users.bungo.extraGroups = lib.mkAfter [ "netbird-desktop" ];
+
+  # Allow the desktop user (in netbird-desktop group) to read the state dir
+  # so `netbird-desktop login` can access /var/lib/netbird-desktop/default.json.
+  systemd.services.netbird-desktop.serviceConfig.StateDirectoryMode = lib.mkForce "0750";
+
   hostSpec = {
     hostName = "desktop";
     hostAlias = "Meshy";

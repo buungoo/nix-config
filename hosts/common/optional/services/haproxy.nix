@@ -79,8 +79,7 @@ let
     use_backend https-${name}-lan-backend if is_${name} is_lan'';
 
   # Generate backend routing for public services without mTLS (WAN + LAN, no client cert)
-  mkPublicNoMtlsRouting = name: cfg: ''
-    use_backend https-${name}-lan-backend if is_${name}'';
+  mkPublicNoMtlsRouting = name: cfg: ''use_backend https-${name}-lan-backend if is_${name}'';
 
   # Generate backend routing for LAN-only services
   mkLanRouting = name: cfg: ''use_backend https-${name}-lan-backend if is_${name} is_lan'';
@@ -92,18 +91,18 @@ let
       server ${name}-${type} 127.0.0.1:${toString port}'';
 
   # Generate path-based ACLs and use_backend rules for extraBackends
-  mkExtraBackendRouting = name: cfg:
+  mkExtraBackendRouting =
+    name: cfg:
     lib.concatStringsSep "\n      " (
-      lib.mapAttrsToList (
-        ebName: eb: ''
-      acl is_${name}_${ebName} path_beg ${eb.pathPrefix}
-${lib.optionalString (eb.allowMethods != null) ''
-      acl is_${name}_${ebName}_method method ${lib.concatStringsSep " " eb.allowMethods}
-      http-request deny if is_${name}_${ebName} !is_${name}_${ebName}_method''}
-${lib.optionalString (eb.hostHeader != null) ''
-      http-request set-header Host ${eb.hostHeader} if is_${name}_${ebName}''}
-      use_backend ${name}-${ebName} if is_${name}_${ebName}''
-      ) cfg.extraBackends
+      lib.mapAttrsToList (ebName: eb: ''
+              acl is_${name}_${ebName} path_beg ${eb.pathPrefix}
+        ${lib.optionalString (eb.allowMethods != null) ''
+          acl is_${name}_${ebName}_method method ${lib.concatStringsSep " " eb.allowMethods}
+          http-request deny if is_${name}_${ebName} !is_${name}_${ebName}_method''}
+        ${lib.optionalString (
+          eb.hostHeader != null
+        ) ''http-request set-header Host ${eb.hostHeader} if is_${name}_${ebName}''}
+              use_backend ${name}-${ebName} if is_${name}_${ebName}'') cfg.extraBackends
     );
 
   # Escape for HAProxy "string" directive (double-quoted)
@@ -111,60 +110,60 @@ ${lib.optionalString (eb.hostHeader != null) ''
 
   # Generate HTTP frontend with mTLS
   mkMtlsFrontend = name: cfg: ''
-    frontend https-${name}-mtls
-      bind 127.0.0.1:${toString (getMtlsPort name)} ssl crt /var/lib/acme/${cfg.domain}/full.pem ca-file ${mTLSCaFile} verify required${
-        if cfg.backendH2 then " alpn h2,http/1.1" else ""
-      }
-      mode http
-${lib.optionalString cfg.backendH2 ''
+        frontend https-${name}-mtls
+          bind 127.0.0.1:${toString (getMtlsPort name)} ssl crt /var/lib/acme/${cfg.domain}/full.pem ca-file ${mTLSCaFile} verify required${
+            if cfg.backendH2 then " alpn h2,http/1.1" else ""
+          }
+          mode http
+    ${lib.optionalString cfg.backendH2 ''
       # Extended timeouts for gRPC/HTTP2 long-lived connections
       timeout client 3600s
       timeout server 3600s
-''}
-      # Set headers
-      http-request set-header X-Forwarded-Proto https
-      http-request set-header X-Forwarded-For %[src]
-      http-request add-header X-SSL-Client-Verify %[ssl_c_verify]
-      http-request add-header X-SSL-Client-DN %{+Q}[ssl_c_s_dn]
+    ''}
+          # Set headers
+          http-request set-header X-Forwarded-Proto https
+          http-request set-header X-Forwarded-For %[src]
+          http-request add-header X-SSL-Client-Verify %[ssl_c_verify]
+          http-request add-header X-SSL-Client-DN %{+Q}[ssl_c_s_dn]
 ${lib.optionalString (cfg.oidcDiscovery != null) ''
       acl is_${name}_oidc_discovery path -i ${cfg.oidcDiscovery.path}
-      http-request return status 200 content-type application/json string "${escapeHaproxyString cfg.oidcDiscovery.json}" if is_${name}_oidc_discovery
+      http-request return status 200 content-type application/json hdr Access-Control-Allow-Origin "*" string "${escapeHaproxyString cfg.oidcDiscovery.json}" if is_${name}_oidc_discovery
 ''}
-${lib.optionalString (cfg.extraBackends != { }) ''
+    ${lib.optionalString (cfg.extraBackends != { }) ''
       # Path-based routing to extra backends
       ${lib.optionalString (cfg.extraBackends ? oidcToken) ''
-      # Rate limit OIDC token exchange by client IP
-      stick-table type ip size 10k expire 10m store http_req_rate(10s),http_req_rate(10m)
-      http-request track-sc0 src if is_${name}_oidcToken
-      http-request deny if is_${name}_oidcToken { sc_http_req_rate(0) gt 5 } || { sc_http_req_rate(1) gt 30 }
-''}
+        # Rate limit OIDC token exchange by client IP
+        stick-table type ip size 10k expire 10m store http_req_rate(10s),http_req_rate(10m)
+        http-request track-sc0 src if is_${name}_oidcToken
+        http-request deny if is_${name}_oidcToken { sc_http_req_rate(0) gt 5 } || { sc_http_req_rate(1) gt 30 }
+      ''}
       ${mkExtraBackendRouting name cfg}
-''}
-      default_backend ${name}'';
+    ''}
+          default_backend ${name}'';
 
   # Generate HTTP frontend without mTLS (LAN only)
   mkLanFrontend = name: cfg: ''
-    frontend https-${name}-lan
-      bind 127.0.0.1:${toString (getLanPort name)} ssl crt /var/lib/acme/${cfg.domain}/full.pem${
-        if cfg.backendH2 then " alpn h2,http/1.1" else ""
-      }
-      mode http
-${lib.optionalString cfg.backendH2 ''
+        frontend https-${name}-lan
+          bind 127.0.0.1:${toString (getLanPort name)} ssl crt /var/lib/acme/${cfg.domain}/full.pem${
+            if cfg.backendH2 then " alpn h2,http/1.1" else ""
+          }
+          mode http
+    ${lib.optionalString cfg.backendH2 ''
       # Extended timeouts for gRPC/HTTP2 long-lived connections
       timeout client 3600s
       timeout server 3600s
-''}
-      http-request set-header X-Forwarded-Proto https
-      http-request set-header X-Forwarded-For %[src]
+    ''}
+          http-request set-header X-Forwarded-Proto https
+          http-request set-header X-Forwarded-For %[src]
 ${lib.optionalString (cfg.oidcDiscovery != null) ''
       acl is_${name}_oidc_discovery path -i ${cfg.oidcDiscovery.path}
-      http-request return status 200 content-type application/json string "${escapeHaproxyString cfg.oidcDiscovery.json}" if is_${name}_oidc_discovery
+      http-request return status 200 content-type application/json hdr Access-Control-Allow-Origin "*" string "${escapeHaproxyString cfg.oidcDiscovery.json}" if is_${name}_oidc_discovery
 ''}
-${lib.optionalString (cfg.extraBackends != { }) ''
+    ${lib.optionalString (cfg.extraBackends != { }) ''
       # Path-based routing to extra backends
       ${mkExtraBackendRouting name cfg}
-''}
-      default_backend ${name}'';
+    ''}
+          default_backend ${name}'';
 
   # Generate HTTP backend
   mkHttpBackend = name: cfg: ''
@@ -172,25 +171,24 @@ ${lib.optionalString (cfg.extraBackends != { }) ''
       mode http${lib.optionalString cfg.backendH2 "\n      timeout server 3600s"}
       server ${name} ${cfg.backendHost}:${toString cfg.backendPort}${
         if cfg.backendSSL then " ssl verify none" else ""
-      }${
-        if cfg.backendH2 then " proto h2" else ""
-      }'';
+      }${if cfg.backendH2 then " proto h2" else ""}'';
 
   # Generate extra path-based backends for a virtualHost
-  mkExtraBackends = name: cfg:
+  mkExtraBackends =
+    name: cfg:
     lib.concatStringsSep "\n\n      " (
-      lib.mapAttrsToList (
-        ebName: eb: ''
-    backend ${name}-${ebName}
-      mode http${lib.optionalString (if eb.backendH2 == null then cfg.backendH2 else eb.backendH2) "\n      timeout server 3600s"}
-      server ${name}-${ebName} ${eb.backendHost}:${toString eb.backendPort}${
-          if eb.backendSSL then " ssl verify none" else ""
-        }${
-          if eb.backendSNI != null then " sni str(${eb.backendSNI})" else ""
-        }${
-          if (if eb.backendH2 == null then cfg.backendH2 else eb.backendH2) then " proto h2" else ""
-        }''
-      ) cfg.extraBackends
+      lib.mapAttrsToList (ebName: eb: ''
+        backend ${name}-${ebName}
+          mode http${
+            lib.optionalString (
+              if eb.backendH2 == null then cfg.backendH2 else eb.backendH2
+            ) "\n      timeout server 3600s"
+          }
+          server ${name}-${ebName} ${eb.backendHost}:${toString eb.backendPort}${
+            if eb.backendSSL then " ssl verify none" else ""
+          }${if eb.backendSNI != null then " sni str(${eb.backendSNI})" else ""}${
+            if (if eb.backendH2 == null then cfg.backendH2 else eb.backendH2) then " proto h2" else ""
+          }'') cfg.extraBackends
     );
 in
 {
@@ -251,7 +249,7 @@ in
         option tcplog
 
         # Define LAN network and WireGuard VPN (IPv4 and IPv6)
-        acl is_lan src ${config.hostSpec.networking.localSubnet} ${config.hostSpec.networking.wireguardIPv4Subnet} ${config.hostSpec.networking.localIPv6Subnet} ${config.hostSpec.networking.wireguardIPv6Subnet} ${containerSubnets}
+        acl is_lan src ${config.hostSpec.networking.localSubnet} ${config.hostSpec.networking.wireguardIPv4Subnet} ${config.hostSpec.networking.localIPv6Subnet} ${config.hostSpec.networking.wireguardIPv6Subnet} 100.64.0.0/10 ${containerSubnets}
 
         # Inspect SNI to determine routing
         tcp-request inspect-delay 5s
@@ -291,8 +289,7 @@ in
       ${lib.concatStringsSep "\n\n      " (
         lib.filter (s: s != "") (
           lib.mapAttrsToList (
-            name: cfg:
-            if cfg.extraBackends != { } then mkExtraBackends name cfg else ""
+            name: cfg: if cfg.extraBackends != { } then mkExtraBackends name cfg else ""
           ) proxiedHosts
         )
       )}
