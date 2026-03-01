@@ -305,6 +305,7 @@ in
                     qualityProfile = {
                       # https://github.com/Dictionarry-Hub/database/tree/stable/profiles
                       "2160p Efficient" = { };
+                      "2160p Balanced" = { };
                     };
                   };
                 };

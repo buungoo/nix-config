@@ -340,8 +340,8 @@ in
                         # This was from 2 years ago but let's assume this is still the case:
                         # https://www.reddit.com/r/ProtonVPN/comments/1eowoxt/tip_dht_will_trigger_protonvpn_antiddos_disable_it/
                         DHTEnabled = false;
-                        GlobalDLSpeedLimit = 25000; # KB/s
-                        GlobalUPSpeedLimit = 25000;
+                        GlobalDLSpeedLimit = 0; # 25000; # KB/s
+                        GlobalUPSpeedLimit = 0; # 25000;
                         UseAlternativeGlobalSpeedLimit = false;
                         MaxActiveCheckingTorrents = 4; # Should be fine (with overhead) on all nvme nas
                         # Port = This is set dynamically by the qbit-portforward script

@@ -267,7 +267,7 @@ in
                     };
                     qualityProfile = {
                       "2160p Efficient" = { };
-                      "1080p Efficient" = { };
+                      "2160p Balanced" = { };
                     };
                   };
                 };

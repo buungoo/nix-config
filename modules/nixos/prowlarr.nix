@@ -117,6 +117,36 @@ in
           group = "prowlarr";
           mode = "0400";
         };
+        sops.secrets."prowlarr/indexer-b/api-key" = {
+          sopsFile = "${sopsFolder}/${config.hostSpec.hostName}.yaml";
+          owner = "prowlarr";
+          group = "prowlarr";
+          mode = "0400";
+        };
+        sops.secrets."prowlarr/indexer-b/rss-key" = {
+          sopsFile = "${sopsFolder}/${config.hostSpec.hostName}.yaml";
+          owner = "prowlarr";
+          group = "prowlarr";
+          mode = "0400";
+        };
+        sops.secrets."prowlarr/indexer-c/api-key" = {
+          sopsFile = "${sopsFolder}/${config.hostSpec.hostName}.yaml";
+          owner = "prowlarr";
+          group = "prowlarr";
+          mode = "0400";
+        };
+        sops.secrets."prowlarr/indexer-d/api-key" = {
+          sopsFile = "${sopsFolder}/${config.hostSpec.hostName}.yaml";
+          owner = "prowlarr";
+          group = "prowlarr";
+          mode = "0400";
+        };
+        sops.secrets."prowlarr/indexer-e/api-key" = {
+          sopsFile = "${sopsFolder}/${config.hostSpec.hostName}.yaml";
+          owner = "prowlarr";
+          group = "prowlarr";
+          mode = "0400";
+        };
 
         # Container definition
         containers.prowlarr = {
@@ -146,6 +176,26 @@ in
             };
             "/run/secrets/prowlarr/indexer-a/api-key" = {
               hostPath = config.sops.secrets."prowlarr/indexer-a/api-key".path;
+              isReadOnly = true;
+            };
+            "/run/secrets/prowlarr/indexer-b/api-key" = {
+              hostPath = config.sops.secrets."prowlarr/indexer-b/api-key".path;
+              isReadOnly = true;
+            };
+            "/run/secrets/prowlarr/indexer-b/rss-key" = {
+              hostPath = config.sops.secrets."prowlarr/indexer-b/rss-key".path;
+              isReadOnly = true;
+            };
+            "/run/secrets/prowlarr/indexer-c/api-key" = {
+              hostPath = config.sops.secrets."prowlarr/indexer-c/api-key".path;
+              isReadOnly = true;
+            };
+            "/run/secrets/prowlarr/indexer-d/api-key" = {
+              hostPath = config.sops.secrets."prowlarr/indexer-d/api-key".path;
+              isReadOnly = true;
+            };
+            "/run/secrets/prowlarr/indexer-e/api-key" = {
+              hostPath = config.sops.secrets."prowlarr/indexer-e/api-key".path;
               isReadOnly = true;
             };
           };
@@ -189,6 +239,7 @@ in
                       "$.*.config.host.apiKey"
                       "$.*.applications.*.fields.apiKey"
                       "$.*.indexer.*.fields.apikey"
+                      "$.*.indexer.*.fields.rsskey"
                     ];
                   };
 
