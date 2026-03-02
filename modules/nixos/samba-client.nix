@@ -31,18 +31,20 @@ in
     };
 
     credentials = lib.mkOption {
-      type = lib.types.attrsOf (lib.types.submodule {
-        options = {
-          username = lib.mkOption {
-            type = lib.types.str;
-            description = "SMB username for authentication";
+      type = lib.types.attrsOf (
+        lib.types.submodule {
+          options = {
+            username = lib.mkOption {
+              type = lib.types.str;
+              description = "SMB username for authentication";
+            };
+            passwordFile = lib.mkOption {
+              type = lib.types.path;
+              description = "Path to file containing the SMB password (e.g. a sops secret path)";
+            };
           };
-          passwordFile = lib.mkOption {
-            type = lib.types.path;
-            description = "Path to file containing the SMB password (e.g. a sops secret path)";
-          };
-        };
-      });
+        }
+      );
       default = { };
       description = ''
         Named SMB credential sets. Each generates a credentials file
@@ -81,7 +83,8 @@ in
       "d /etc/samba/credentials 0700 root root -"
     ];
 
-    systemd.services = lib.mapAttrs' (name: cred:
+    systemd.services = lib.mapAttrs' (
+      name: cred:
       lib.nameValuePair "smb-credentials-${name}" {
         description = "Generate SMB credentials file for ${name}";
         after = [ "sops-nix.service" ];

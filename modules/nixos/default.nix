@@ -1,6 +1,6 @@
 # NixOS-specific option interface modules
 # Imported globally so all hosts can set these options;
-# implementation modules (haproxy.nix, kanidm.nix) consume them.
+# implementation modules consume them.
 { ... }:
 {
   imports = [
@@ -14,6 +14,5 @@
     ./jellyseerr.nix
     ./samba-client.nix
     ./netbird.nix
-    # ./mediamanager.nix
   ];
 }

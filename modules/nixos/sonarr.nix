@@ -4,9 +4,8 @@
 # https://github.com/upidapi/NixOs/blob/main/modules/nixos/homelab/media/arr.nix
 # to even have a chance of configuring this crap
 # Also for api endpoints using:
-# nix-shell -p jq --run 'curl -s -H "X-Api-Key: $(sudo cat /run/secrets/sonarr/api-key)" http://10.0.1.4:8989/api/v3/<type> | jq ".[].fields[] | {name, value}"'
+# nix-shell -p jq --run 'curl -s -H "X-Api-Key: $(sudo cat /run/secrets/sonarr/api-key)" http://<container ip + port>/api/v3/<type> | jq ".[].fields[] | {name, value}"'
 # where type is e.g. downloadclient
-
 {
   config,
   pkgs,
