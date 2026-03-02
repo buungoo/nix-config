@@ -306,7 +306,7 @@ in
               # qBittorrent service
               services.qbittorrent = {
                 enable = true;
-                openFirewall = true;
+                openFirewall = false;
                 user = "qbittorrent";
                 group = "media";
                 webuiPort = cfg.port;
@@ -369,6 +369,9 @@ in
                 ];
               };
 
+              # Port is dynamic (via NAT-PMP), so keep firewall off in the container.
+              networking.firewall.enable = false;
+
               systemd.services.qbittorrent = lib.mkMerge [
                 {
                   # UMask 0002 creates files as 0664 (group-writable), required for
@@ -403,17 +406,33 @@ in
                 serviceConfig = {
                   Type = "oneshot";
                   ExecStart = pkgs.writeShellScript "qbit-portforward" ''
-                    PORT=$(${pkgs.libnatpmp}/bin/natpmpc -a 1 0 tcp 60 -g ${cfg.vpn.dns} \
-                      | ${pkgs.gnugrep}/bin/grep 'Mapped public port' \
-                      | ${pkgs.gawk}/bin/awk '{print $4}')
+                    CONF="/var/lib/qbittorrent/qBittorrent/config/qBittorrent.conf"
+                    CURRENT_PORT=$(${pkgs.gnugrep}/bin/grep -E '^(Session|Connection)\\\\Port=' "$CONF" \
+                      | ${pkgs.coreutils}/bin/tail -n1 | ${pkgs.coreutils}/bin/cut -d= -f2)
+                    if [ -z "$CURRENT_PORT" ]; then
+                      # Fallback to a high port if config is missing.
+                      CURRENT_PORT=50000
+                    fi
+
+                    MAP_TCP=$(${pkgs.libnatpmp}/bin/natpmpc -a "$CURRENT_PORT" 0 tcp 60 -g ${cfg.vpn.dns} \
+                      | ${pkgs.gnugrep}/bin/grep 'Mapped public port')
+                    PORT=$(${pkgs.gawk}/bin/awk '{print $4}' <<< "$MAP_TCP")
+                    LOCAL=$(${pkgs.gawk}/bin/awk '{print $10}' <<< "$MAP_TCP")
 
                     if [ -z "$PORT" ]; then
                       echo "Failed to get port from NAT-PMP"
                       exit 1
                     fi
 
-                    # Also map UDP
-                    ${pkgs.libnatpmp}/bin/natpmpc -a 1 0 udp 60 -g ${cfg.vpn.dns}
+                    # If the public port differs, switch qBittorrent to the public port
+                    # and re-request mappings to keep public/local ports aligned.
+                    if [ "$PORT" != "$CURRENT_PORT" ]; then
+                      CURRENT_PORT="$PORT"
+                    fi
+
+                    # Map TCP/UDP for the chosen local port.
+                    ${pkgs.libnatpmp}/bin/natpmpc -a "$CURRENT_PORT" 0 tcp 60 -g ${cfg.vpn.dns} >/dev/null
+                    ${pkgs.libnatpmp}/bin/natpmpc -a "$CURRENT_PORT" 0 udp 60 -g ${cfg.vpn.dns} >/dev/null
 
                     # Authenticate and update qBittorrent listening port
                     PASSWORD=$(cat /run/secrets/qbit/plaintext_password)
@@ -423,10 +442,10 @@ in
                       -d "username=bungo&password=$PASSWORD"
                     ${pkgs.curl}/bin/curl -s -b "$COOKIE" \
                       http://localhost:${toString cfg.port}/api/v2/app/setPreferences \
-                      -d "json={\"listen_port\":$PORT}"
+                      -d "json={\"listen_port\":$CURRENT_PORT}"
                     rm -f "$COOKIE"
 
-                    echo "Forwarded public port $PORT"
+                    echo "Forwarded public port $PORT (local $CURRENT_PORT)"
                   '';
                 };
               };

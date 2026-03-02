@@ -214,8 +214,10 @@ in
                     stateDir = "/var/lib/sonarr";
                     # Why is this a requirement? Why does it not default??
                     # Anyway pull in dictionarry quality database
-                    formatDbRepo = "https://github.com/Dictionarry-Hub/Database";
+                    formatDbRepo = "https://github.com/Dumpstarr/Dumpstarr";
                     formatDbBranch = "stable";
+                    customFormatRecreate = true;
+                    customFormatPreferRaw = true;
                     globalResolvePaths = [
                       "$.*.config.host.password"
                       "$.*.config.host.passwordConfirmation"
@@ -304,8 +306,25 @@ in
                     # Why is this a requirement? Should default??
                     qualityProfile = {
                       # https://github.com/Dictionarry-Hub/database/tree/stable/profiles
-                      "2160p Efficient" = { };
-                      "2160p Balanced" = { };
+                      # "2160p Efficient" = { };
+                      # "2160p Balanced" = { };
+                      "TV 2160p" = {
+                        formatScoreOverrides = {
+                          AV1 = 1000;
+                          "Banned Groups" = -200;
+                          "Banned Groups (Title)" = -200;
+                          "Scrubs (Banned Groups)" = -200;
+                          "Scrubs (Banned Title)" = -200;
+                        };
+                      };
+                      "TV 1080p" = {
+                        formatScoreOverrides = {
+                          "Banned Groups" = -200;
+                          "Banned Groups (Title)" = -200;
+                          "Scrubs (Banned Groups)" = -200;
+                          "Scrubs (Banned Title)" = -200;
+                        };
+                      };
                     };
                   };
                 };
