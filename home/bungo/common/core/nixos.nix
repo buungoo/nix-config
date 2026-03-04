@@ -6,10 +6,10 @@
   ...
 }:
 {
-  # NixOS-specific home configuration
-
-  # nh configuration for NixOS
-  programs.nh.osFlake = "$HOME/.nixos/nix-config";
+  programs.nh = {
+    enable = true;
+    osFlake = "$HOME/.nixos/nix-config";
+  };
 
   # Linux-specific packages
   home.packages = with pkgs; [
