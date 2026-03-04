@@ -1,10 +1,10 @@
 final: prev: {
   samba = prev.samba.overrideAttrs (oldAttrs: rec {
-    version = "4.23.5";
+    version = "4.23.6";
 
     src = prev.fetchurl {
       url = "mirror://samba/samba/samba-${version}.tar.gz";
-      hash = "sha256-WTpD3dDVeQIjffp2iI97Ast/x3RxETacsx4SbbSDa58=";
+      hash = "sha256-49q9i15C3Jdmn6D67wMlEKlOSWtY9wZwguUDbYjw5wI=";
     };
 
     # Keep the essential patches from the original package
@@ -12,7 +12,6 @@ final: prev: {
     patches = builtins.filter (
       p:
       builtins.match ".*no-persistent-install.*" (builtins.baseNameOf p) != null
-      || builtins.match ".*fix-makeflags-parsing.*" (builtins.baseNameOf p) != null
     ) (oldAttrs.patches or [ ]);
   });
 

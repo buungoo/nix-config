@@ -14,4 +14,7 @@
 
   # Fix brew-nix Vivaldi .tar.xz extraction
   vivaldi-fix = import ./vivaldi-fix.nix;
+
+  # Immich OpenVINO support
+  immich-openvino = import ./immich-openvino.nix;
 }

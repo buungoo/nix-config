@@ -7,6 +7,7 @@
     ./reverse-proxy.nix
     ./kanidm-oauth.nix
     ./jellyfin.nix
+    ./immich.nix
     ./sonarr.nix
     ./qbittorrent.nix
     ./prowlarr.nix

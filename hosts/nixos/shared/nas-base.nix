@@ -36,7 +36,7 @@
 
       # Containers
       "hosts/common/optional/containers/step-ca.nix"
-      "hosts/common/optional/containers/immich.nix"
+      # "hosts/common/optional/containers/immich.nix"
       # TODO: problems with declarative-jellyfin
       # "hosts/common/optional/containers/jellyfin.nix"
       "hosts/common/optional/containers/kanidm.nix"
@@ -46,7 +46,7 @@
       # "hosts/common/optional/containers/qbittorrent.nix"
       # "hosts/common/optional/containers/jellyseer.nix"
       "hosts/common/optional/containers/bazarr.nix"
-      "hosts/common/optional/containers/monitoring.nix"
+      # "hosts/common/optional/containers/monitoring.nix"
 
       # HAProxy
       "hosts/common/optional/services/haproxy.nix"
@@ -71,6 +71,7 @@
   hostSpec.isServer = true;
 
   custom.services.jellyfin.enable = true;
+  custom.services.immich.enable = true;
   custom.services.sonarr.enable = true;
   custom.services.qbittorrent.enable = true;
   custom.services.prowlarr.enable = true;

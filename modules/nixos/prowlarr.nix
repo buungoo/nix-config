@@ -147,6 +147,12 @@ in
           group = "prowlarr";
           mode = "0400";
         };
+        sops.secrets."prowlarr/indexer-f/api-key" = {
+          sopsFile = "${sopsFolder}/${config.hostSpec.hostName}.yaml";
+          owner = "prowlarr";
+          group = "prowlarr";
+          mode = "0400";
+        };
 
         # Container definition
         containers.prowlarr = {
@@ -196,6 +202,10 @@ in
             };
             "/run/secrets/prowlarr/indexer-e/api-key" = {
               hostPath = config.sops.secrets."prowlarr/indexer-e/api-key".path;
+              isReadOnly = true;
+            };
+            "/run/secrets/prowlarr/indexer-f/api-key" = {
+              hostPath = config.sops.secrets."prowlarr/indexer-f/api-key".path;
               isReadOnly = true;
             };
           };

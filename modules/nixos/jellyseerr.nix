@@ -243,7 +243,7 @@ in
                       tags = [ ];
                       tagRequests = false;
                       activeDirectory = "/arr/media/movies";
-                      activeProfileName = "2160p Efficient";
+                      activeProfileName = "Movies 2160p"; #"2160p Efficient";
                     }
                   ];
 
@@ -265,7 +265,7 @@ in
                       animeTags = [ ];
                       tagRequests = false;
                       activeDirectory = "/arr/media/tv";
-                      activeProfileName = "2160p Efficient";
+                      activeProfileName = "TV 2160p"; #"2160p Efficient";
                     }
                   ];
 
