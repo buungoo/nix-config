@@ -201,39 +201,6 @@ in
           max-port = 49200;
         };
 
-        # NetBird client on the server
-        services.netbird.clients.server = {
-          port = 51821;
-          interface = "nb-server";
-          logLevel = "info";
-          config = {
-            ManagementURL = {
-              Scheme = "https";
-              Host = "${cfg.domain}:443";
-            };
-          };
-          login.enable = true;
-          login.setupKeyFile = config.sops.secrets."netbird/setup-key".path;
-          # Find the store path for netbird-server:
-          #   readlink -f /run/current-system/sw/bin/netbird-server
-          # Show status:
-          #   /nix/store/<...>-netbird-client-<...>-wrapper-server/bin/netbird-server status
-        };
-
-        networking.firewall.allowedUDPPorts = [
-          config.services.netbird.clients.server.port
-        ];
-
-        systemd.services.netbird-server-login.serviceConfig = {
-          Environment = [
-            "HOME=/var/lib/netbird-server"
-            "XDG_CONFIG_HOME=/var/lib/netbird-server/.config"
-          ];
-          StateDirectory = "netbird-server";
-          StateDirectoryMode = "0700";
-          WorkingDirectory = "/var/lib/netbird-server";
-        };
-
         custom.reverseProxy.virtualHosts.netbird = {
           domain = cfg.domain;
           backendHost = "127.0.0.1";

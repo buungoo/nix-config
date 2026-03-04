@@ -33,6 +33,7 @@
       "hosts/common/optional/services/scrutiny.nix"
       "hosts/common/optional/services/glance.nix"
       "hosts/common/optional/services/cloudflare-dyndns.nix"
+      "hosts/common/optional/services/netbird-client.nix"
 
       # Containers
       "hosts/common/optional/containers/step-ca.nix"
@@ -80,5 +81,11 @@
   custom.services.netbird = {
     enable = true;
     dashboard.enable = true;
+  };
+
+  custom.services.netbird-client = {
+    enable = true;
+    managementURL = "https://netbird.${inputs.nix-secrets.nas0.domain}:443";
+    setupKeyFile = config.sops.secrets."netbird/setup-key".path;
   };
 }

@@ -23,6 +23,7 @@
       "hosts/common/optional/opengamepadui.nix"
       "hosts/common/optional/steam.nix"
       "hosts/common/optional/services/wireguard-client.nix"
+      "hosts/common/optional/services/netbird-client.nix"
     ])
   ];
 
@@ -65,31 +66,10 @@
     kdeconnect.enable = true;
   };
 
-  services.netbird.clients.desktop = {
-    port = 51821;
-    interface = "nb-desktop";
-    logLevel = "info";
-    config = {
-      ManagementURL = {
-        Scheme = "https";
-        Host = "netbird.bungos.xyz:443";
-      };
-    };
+  custom.services.netbird-client = {
+    enable = true;
+    managementURL = "https://netbird.bungos.xyz:443";
   };
-
-  networking.firewall.allowedUDPPorts = [
-    config.services.netbird.clients.desktop.port
-  ];
-
-  # Ensure the UI wrapper is present for SSO login on a non-X11 desktop.
-  services.netbird.ui.enable = true;
-
-  # Allow the desktop user to talk to the hardened NetBird daemon socket.
-  users.users.bungo.extraGroups = lib.mkAfter [ "netbird-desktop" ];
-
-  # Allow the desktop user (in netbird-desktop group) to read the state dir
-  # so `netbird-desktop login` can access /var/lib/netbird-desktop/default.json.
-  systemd.services.netbird-desktop.serviceConfig.StateDirectoryMode = lib.mkForce "0750";
 
   hostSpec = {
     hostName = "desktop";

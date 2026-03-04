@@ -17,6 +17,7 @@
       "hosts/common/optional/services/wireguard-client.nix"
       "hosts/common/optional/yabai.nix"
       "hosts/common/optional/python.nix"
+      "hosts/common/optional/services/netbird-client.nix"
     ])
   ];
 
@@ -58,5 +59,10 @@
       ShowMountedServersOnDesktop = true;
       ShowRemovableMediaOnDesktop = true;
     };
+  };
+
+  custom.services.netbird-client = {
+    enable = true;
+    managementURL = "https://netbird.bungos.xyz:443";
   };
 }

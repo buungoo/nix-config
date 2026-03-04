@@ -60,6 +60,13 @@ in
     };
   };
 
+  # Add sops secret for WireGuard private key
+  sops.secrets."wireguard/private_key" = {
+    sopsFile = (builtins.toString inputs.nix-secrets) + "/sops/${config.hostSpec.hostName}.yaml";
+    owner = primaryUser;
+    mode = "0400";
+  };
+} // lib.optionalAttrs (!isDarwin) {
   # NOTE: Remove this after server migration
   boot.kernel.sysctl."net.ipv4.ip_forward" = 1;
   networking.firewall.allowedTCPPorts = [ 8096 ];
@@ -84,16 +91,7 @@ in
       '';
     };
   };
-
-  # Add sops secret for WireGuard private key
-  sops.secrets."wireguard/private_key" = {
-    sopsFile = (builtins.toString inputs.nix-secrets) + "/sops/${config.hostSpec.hostName}.yaml";
-    owner = primaryUser;
-    mode = "0400";
-  };
-
-}
-// lib.optionalAttrs isDarwin {
+} // lib.optionalAttrs isDarwin {
   # Override the launchd daemon to disable KeepAlive (macOS only)
   # This allows wg-quick down to actually stop the interface
   launchd.daemons.wg-quick-wg0.serviceConfig.KeepAlive = lib.mkForce false;
