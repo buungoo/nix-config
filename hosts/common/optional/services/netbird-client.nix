@@ -46,7 +46,7 @@ in
         environment.systemPackages = [ pkgs.netbird ];
       }
 
-      (lib.mkIf (!isDarwin) {
+      (lib.optionalAttrs (!isDarwin) {
         # NixOS client configuration
         services.netbird.clients."${cfg.name}" = {
           port = cfg.port;
@@ -55,7 +55,7 @@ in
           config = {
             ManagementURL = {
               Scheme = "https";
-              Host = (builtins.elemAt (lib.splitString "://" cfg.managementURL) 2);
+              Host = (builtins.elemAt (lib.splitString "://" cfg.managementURL) 1);
             };
           };
           login = lib.optionalAttrs (cfg.setupKeyFile != null) {
@@ -75,7 +75,7 @@ in
         networking.firewall.allowedUDPPorts = [ cfg.port ];
       })
 
-      (lib.mkIf isDarwin {
+      (lib.optionalAttrs isDarwin {
         # Darwin setup
         system.activationScripts.postActivation.text = ''
           echo "ensuring netbird runtime directory..."

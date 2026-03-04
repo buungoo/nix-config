@@ -81,6 +81,17 @@
   custom.services.netbird = {
     enable = true;
     dashboard.enable = true;
+    setupKeyFile = config.sops.secrets."netbird/setup-key".path;
+    staticIPs = {
+      "${config.hostSpec.hostName}" = "100.75.0.5";
+    };
+    nameservers = [
+      {
+        name = "${config.hostSpec.hostName}-unbound";
+        ip = "100.75.0.5";
+        primary = true;
+      }
+    ];
   };
 
   custom.services.netbird-client = {

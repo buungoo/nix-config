@@ -46,6 +46,45 @@ in
         description = "FQDN for the Netbird dashboard";
       };
     };
+
+    managementTokenFile = lib.mkOption {
+      type = lib.types.nullOr lib.types.path;
+      default = null;
+      description = "Path to a file containing a Netbird Personal Access Token for provisioning.";
+    };
+
+    setupKeyFile = lib.mkOption {
+      type = lib.types.nullOr lib.types.path;
+      default = null;
+      description = "Path to the setup key file to ensure exists in the database.";
+    };
+
+    staticIPs = lib.mkOption {
+      type = lib.types.attrsOf lib.types.str;
+      default = { };
+      description = "Map of peer names to desired static Netbird IPs.";
+    };
+
+    nameservers = lib.mkOption {
+      type = lib.types.listOf (
+        lib.types.submodule {
+          options = {
+            name = lib.mkOption { type = lib.types.str; };
+            ip = lib.mkOption { type = lib.types.str; };
+            domains = lib.mkOption {
+              type = lib.types.listOf lib.types.str;
+              default = [ config.hostSpec.domain ]; # Default to the host domain
+            };
+            primary = lib.mkOption {
+              type = lib.types.bool;
+              default = true;
+            };
+          };
+        }
+      );
+      default = [ ];
+      description = "List of nameservers to provision in the Netbird network.";
+    };
   };
 
   config = lib.mkIf cfg.enable (
@@ -171,7 +210,7 @@ in
                 ClientID = "netbird";
                 ClientSecret = "";
                 AuthorizationEndpoint = "https://${authDomain}/oauth2/authorize";
-                Scope = "openid profile email offline_access";
+                Scope = "openid profile email offline_access api";
                 RedirectURLs = [ "http://localhost:53000" ];
                 UseIDToken = false;
               }
@@ -180,6 +219,10 @@ in
               };
 
               IdpManagerConfig.ManagerType = "none";
+
+              PATConfig = {
+                Enabled = true;
+              };
             };
           };
 
@@ -295,6 +338,7 @@ in
             "email"
             "profile"
             "offline_access"
+            "api"
           ];
         };
 
@@ -317,6 +361,95 @@ in
           owner = "root";
           group = "turnserver";
           mode = "0440";
+        };
+      }
+      # Provisioning Service
+      {
+        systemd.services.netbird-provisioning = {
+          description = "Declarative provisioning for Netbird Management (SQLite)";
+          after = [ "netbird-management.service" ];
+          wantedBy = [ "multi-user.target" ];
+
+          path = with pkgs; [
+            sqlite
+            jq
+            coreutils
+          ];
+
+          script = ''
+            DB="/var/lib/netbird-mgmt/data/store.db"
+            
+            # 0. Provision Setup Key
+            ${lib.optionalString (cfg.setupKeyFile != null) ''
+              SETUP_KEY=$(cat ${cfg.setupKeyFile})
+              # Check if key already exists
+              KEY_EXISTS=$(sqlite3 "$DB" "SELECT 1 FROM setup_keys WHERE key = '$SETUP_KEY' LIMIT 1;")
+              if [ -z "$KEY_EXISTS" ]; then
+                echo "Injecting SOPS setup-key into database..."
+                ACCOUNT_ID=$(sqlite3 "$DB" "SELECT id FROM accounts LIMIT 1;")
+                NEW_KEY_ID=$(cat /proc/sys/kernel/random/uuid | tr -d '-')
+                # Insert reusable, non-expiring setup key associated with the first account
+                sqlite3 "$DB" "INSERT INTO setup_keys (id, account_id, key, name, type, created_at, expires_at, usage_limit, used_times, ephemeral, last_used, auto_groups) \
+                  VALUES ('$NEW_KEY_ID', '$ACCOUNT_ID', '$SETUP_KEY', 'Managed by SOPS', 'reusable', datetime('now'), datetime('now', '+10 years'), 0, 0, 0, NULL, '[\"all\"]');"
+              fi
+            ''}
+
+            # 1. Provision Static IPs
+            echo "Syncing Static IPs via SQLite..."
+            ${lib.concatStringsSep "\n" (
+              lib.mapAttrsToList (name: ip: ''
+                echo "Deduplicating and ensuring peer ${name} has IP ${ip}..."
+                # Find the ID of the most recently seen peer with this name
+                LATEST_ID=$(sqlite3 "$DB" "SELECT id FROM peers WHERE name = '${name}' ORDER BY peer_status_last_seen DESC LIMIT 1;")
+                if [ -n "$LATEST_ID" ]; then
+                  # Delete all other entries with this name to avoid IP conflicts
+                  sqlite3 "$DB" "DELETE FROM peers WHERE name = '${name}' AND id != '$LATEST_ID';"
+                  # Update the IP of the remaining peer
+                  sqlite3 "$DB" "UPDATE peers SET ip = '\"${ip}\"' WHERE id = '$LATEST_ID';"
+                fi
+              '') cfg.staticIPs
+            )}
+
+            # 2. Provision Nameservers
+            # We fetch the first account_id to associate the nameserver
+            ACCOUNT_ID=$(sqlite3 "$DB" "SELECT id FROM accounts LIMIT 1;")
+            ALL_GROUP_ID=$(sqlite3 "$DB" "SELECT id FROM groups WHERE name = 'All' AND account_id = '$ACCOUNT_ID' LIMIT 1;")
+
+            echo "Syncing Nameservers via SQLite (Account: $ACCOUNT_ID, Group: $ALL_GROUP_ID)..."
+            ${lib.concatMapStringsSep "\n" (ns: ''
+              NS_ID=$(sqlite3 "$DB" "SELECT id FROM name_server_groups WHERE name = '${ns.name}' LIMIT 1;")
+              
+              # Construct JSON fields
+              NS_SERVERS_JSON='[{"ip":"${ns.ip}","ns_type":"udp","port":53}]'
+              GROUPS_JSON='["'$ALL_GROUP_ID'"]'
+              DOMAINS_JSON='${builtins.toJSON ns.domains}'
+
+              if [ -n "$NS_ID" ]; then
+                echo "Updating nameserver ${ns.name} ($NS_ID) with domains $DOMAINS_JSON..."
+                sqlite3 "$DB" "UPDATE name_server_groups SET name_servers = '$NS_SERVERS_JSON', groups = '$GROUPS_JSON', \`primary\` = ${if ns.primary then "1" else "0"}, domains = '$DOMAINS_JSON', enabled = 1 WHERE id = '$NS_ID';"
+              else
+                NEW_ID=$(cat /proc/sys/kernel/random/uuid | tr -d '-')
+                echo "Creating nameserver ${ns.name} ($NEW_ID) with domains $DOMAINS_JSON..."
+                sqlite3 "$DB" "INSERT INTO name_server_groups (id, account_id, name, description, name_servers, groups, \`primary\`, domains, enabled, search_domains_enabled) \
+                  VALUES ('$NEW_ID', '$ACCOUNT_ID', '${ns.name}', 'Managed by NixOS', '$NS_SERVERS_JSON', '$GROUPS_JSON', ${if ns.primary then "1" else "0"}, '$DOMAINS_JSON', 1, 1);"
+              fi
+            '') cfg.nameservers}
+            
+            # Restart management to pick up DB changes
+            # (Netbird caches much of the DB in memory)
+            if [ "$(systemctl is-active netbird-management.service)" == "active" ]; then
+               echo "Restarting Netbird Management to reload database..."
+               # Give SQLite a moment to sync to disk
+               sleep 2
+               systemctl restart netbird-management.service
+            fi
+          '';
+
+          serviceConfig = {
+            Type = "oneshot";
+            RemainAfterExit = true;
+            User = "root";
+          };
         };
       }
     ]

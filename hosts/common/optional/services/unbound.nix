@@ -96,22 +96,37 @@ in
         # All queries for *.${domain} return local IP
         private-domain = [ ''"${config.hostSpec.domain}"'' ];
 
-        # Define local data for split-horizon DNS
+        # Define local-zone
         local-zone = [ ''"${config.hostSpec.domain}." transparent'' ];
 
-        # Dynamically generated from custom.reverseProxy.virtualHosts
+        # Default local-data (for LAN and containers)
         local-data = [
-          # Apex domain
           ''"${config.hostSpec.domain}. A ${config.hostSpec.networking.localIP}"''
         ]
         ++ (lib.mapAttrsToList (
           _: vh: ''"${vh.domain}. A ${config.hostSpec.networking.localIP}"''
         ) config.custom.reverseProxy.virtualHosts);
 
-        # Allow local data to be returned for private domains
-        # but forward everything else (like TXT records for ACME)
         local-data-ptr = [ ''"${config.hostSpec.networking.localIP} ${config.hostSpec.domain}"'' ];
       };
+
+      # Mapping subnets to views
+      access-control-view = [
+        "100.64.0.0/10 netbird"
+      ];
+
+      # Define views for split-horizon
+      view = [
+        {
+          name = "netbird";
+          local-data = [
+            ''"${config.hostSpec.domain}. A 100.75.0.5"''
+          ]
+          ++ (lib.mapAttrsToList (
+            _: vh: ''"${vh.domain}. A 100.75.0.5"''
+          ) config.custom.reverseProxy.virtualHosts);
+        }
+      ];
 
       # DNS-over-TLS forwarding to Quad9
       forward-zone = [
