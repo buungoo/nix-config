@@ -98,6 +98,7 @@
     enable = true;
     managementURL = "https://netbird.${inputs.nix-secrets.nas0.domain}:443";
     setupKeyFile = config.sops.secrets."netbird/setup-key".path;
+    disableDNS = true;
   };
 
   nixpkgs.overlays = [

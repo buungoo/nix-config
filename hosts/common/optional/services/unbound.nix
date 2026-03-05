@@ -62,6 +62,14 @@ in
           "${config.hostSpec.networking.localSubnet} allow"
           "10.0.0.0/8 allow" # Allow container networks
           "100.64.0.0/10 allow" # NetBird peer subnet
+          "100.75.0.0/16 allow" # Netbird specific subnet for this host
+          "192.168.1.134/32 allow" # Allow the host itself on its LAN IP
+        ];
+
+        # Mapping subnets to views
+        access-control-view = [
+          "100.64.0.0/10 netbird"
+          "100.75.0.0/16 netbird"
         ];
 
         # Performance tuning
@@ -110,15 +118,12 @@ in
         local-data-ptr = [ ''"${config.hostSpec.networking.localIP} ${config.hostSpec.domain}"'' ];
       };
 
-      # Mapping subnets to views
-      access-control-view = [
-        "100.64.0.0/10 netbird"
-      ];
-
       # Define views for split-horizon
       view = [
         {
           name = "netbird";
+          view-first = true;
+          local-zone = [ ''"${config.hostSpec.domain}." transparent'' ];
           local-data = [
             ''"${config.hostSpec.domain}. A 100.75.0.5"''
           ]

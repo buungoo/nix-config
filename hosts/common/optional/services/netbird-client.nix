@@ -37,13 +37,20 @@ in
       default = null;
       description = "Path to the Netbird setup key file for automatic login.";
     };
+
+    disableDNS = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Whether to disable Netbird DNS management.";
+    };
   };
 
   config = lib.mkIf cfg.enable (
     lib.mkMerge [
       {
         # Install the Netbird package on Darwin only (NixOS uses a wrapper below)
-        environment.systemPackages = lib.optional isDarwin pkgs.netbird;
+        environment.systemPackages =
+          (lib.optional isDarwin pkgs.netbird) ++ (lib.optional (!isDarwin) pkgs.openresolv);
       }
 
       (lib.optionalAttrs (!isDarwin) {
@@ -64,6 +71,10 @@ in
           };
         };
 
+        # Enable systemd-resolved to allow Netbird to push DNS updates via DBus
+        # without needing to modify the read-only /etc/resolv.conf directly.
+        services.resolved.enable = lib.mkIf (!cfg.disableDNS) true;
+
         # Allow primary users to talk to the NetBird daemon socket.
         users.users = lib.mapAttrs (name: user: {
           extraGroups = [ "netbird-${cfg.name}" ];
@@ -76,19 +87,18 @@ in
 
             # Fix "Required key not available" and read-only FS errors
             # Force userspace WireGuard (software) which is more reliable on some NixOS kernels
-            # Disable SSH and DNS for now to avoid errors with read-only /etc
+            # Disable SSH for now to avoid errors with read-only /etc
             Environment = [
               "NB_WG_IFACE_TYPE=software"
               "NB_DISABLE_SSH_AUTH=true"
-              "NB_DISABLE_DNS=true"
+              "NB_DISABLE_DNS=${if cfg.disableDNS then "true" else "false"}"
             ];
 
             # Allow netbird to update DNS and SSH if we ever want to enable them
             # and to avoid errors during cleanup
             ReadWritePaths = [
               "/etc/ssh"
-              "/etc/resolv.conf"
-            ];
+            ] ++ (lib.optional (!cfg.disableDNS) "/etc/resolv.conf");
 
             # Ensure we have enough permissions for network management
             AmbientCapabilities = [
@@ -132,6 +142,11 @@ in
             KeepAlive = true;
             StandardErrorPath = "/var/log/netbird.err.log";
             StandardOutPath = "/var/log/netbird.out.log";
+            EnvironmentVariables = {
+              NB_WG_IFACE_TYPE = "software";
+              NB_DISABLE_SSH_AUTH = "true";
+              NB_DISABLE_DNS = if cfg.disableDNS then "true" else "false";
+            };
           };
         };
       })
