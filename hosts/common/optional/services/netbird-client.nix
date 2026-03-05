@@ -73,7 +73,21 @@ in
         systemd.services."netbird-${cfg.name}".serviceConfig.StateDirectoryMode = lib.mkForce "0750";
 
         # Point the CLI to the correct socket for this named client
-        environment.variables.NETBIRD_DAEMON_ADDR = "unix:///var/run/netbird-${cfg.name}/sock";
+        environment.sessionVariables.NETBIRD_DAEMON_ADDR = "unix:///var/run/netbird-${cfg.name}/sock";
+
+        # Wrap the netbird binary to always use the correct socket
+        # This ensures it works even in non-interactive shells or before logout
+        nixpkgs.overlays = [
+          (final: prev: {
+            netbird = prev.netbird.overrideAttrs (old: {
+              postInstall = (old.postInstall or "") + ''
+                wrapProgram $out/bin/netbird \
+                  --set-default NETBIRD_DAEMON_ADDR "unix:///var/run/netbird-${cfg.name}/sock"
+              '';
+              nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ final.makeWrapper ];
+            });
+          })
+        ];
 
         networking.firewall.allowedUDPPorts = [ cfg.port ];
       })
