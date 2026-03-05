@@ -75,18 +75,13 @@ in
         # Point the CLI to the correct socket for this named client
         environment.sessionVariables.NETBIRD_DAEMON_ADDR = "unix:///var/run/netbird-${cfg.name}/sock";
 
-        # Wrap the netbird binary to always use the correct socket
-        # This ensures it works even in non-interactive shells or before logout
-        nixpkgs.overlays = [
-          (final: prev: {
-            netbird = prev.netbird.overrideAttrs (old: {
-              postInstall = (old.postInstall or "") + ''
-                wrapProgram $out/bin/netbird \
-                  --set-default NETBIRD_DAEMON_ADDR "unix:///var/run/netbird-${cfg.name}/sock"
-              '';
-              nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ final.makeWrapper ];
-            });
-          })
+        # Provide a wrapped netbird command that always uses the correct socket
+        # We use a higher priority script to ensure it's picked up over the default binary
+        environment.systemPackages = [
+          (pkgs.writeShellScriptBin "netbird" ''
+            export NETBIRD_DAEMON_ADDR="unix:///var/run/netbird-${cfg.name}/sock"
+            exec ${pkgs.netbird}/bin/netbird "$@"
+          '')
         ];
 
         networking.firewall.allowedUDPPorts = [ cfg.port ];
