@@ -72,6 +72,9 @@ in
         # State directory permissions for login
         systemd.services."netbird-${cfg.name}".serviceConfig.StateDirectoryMode = lib.mkForce "0750";
 
+        # Point the CLI to the correct socket for this named client
+        environment.variables.NETBIRD_DAEMON_ADDR = "unix:///var/run/netbird-${cfg.name}/sock";
+
         networking.firewall.allowedUDPPorts = [ cfg.port ];
       })
 
