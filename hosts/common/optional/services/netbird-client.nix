@@ -42,8 +42,8 @@ in
   config = lib.mkIf cfg.enable (
     lib.mkMerge [
       {
-        # Install the Netbird package on all systems
-        environment.systemPackages = [ pkgs.netbird ];
+        # Install the Netbird package on Darwin only (NixOS uses a wrapper below)
+        environment.systemPackages = lib.optional isDarwin pkgs.netbird;
       }
 
       (lib.optionalAttrs (!isDarwin) {
@@ -78,10 +78,11 @@ in
         # Provide a wrapped netbird command that always uses the correct socket
         # We use a higher priority script to ensure it's picked up over the default binary
         environment.systemPackages = [
-          (pkgs.writeShellScriptBin "netbird" ''
-            export NETBIRD_DAEMON_ADDR="unix:///var/run/netbird-${cfg.name}/sock"
-            exec ${pkgs.netbird}/bin/netbird "$@"
-          '')
+          (lib.hiPrio (
+            pkgs.writeShellScriptBin "netbird" ''
+              exec ${pkgs.netbird}/bin/netbird --daemon-addr "unix:///var/run/netbird-${cfg.name}/sock" "$@"
+            ''
+          ))
         ];
 
         networking.firewall.allowedUDPPorts = [ cfg.port ];
