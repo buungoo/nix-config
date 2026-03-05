@@ -27,7 +27,8 @@
   wayland.windowManager.hyprland = {
     enable = true;
 
-    plugins = [ pkgs.hyprlandPlugins.hy3 ];
+    # TODO: hy3 is acting scuffed, fix later
+    # plugins = [ pkgs.hyprlandPlugins.hy3 ];
 
     settings = {
       "$mod" = "SUPER";

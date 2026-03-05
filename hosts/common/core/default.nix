@@ -62,11 +62,10 @@ in
 
   # ========== Overlays ==========
   nixpkgs = {
-    overlays = [
+    overlays = lib.optionals isDarwin [
+      (import ../pkgs/darwin { inherit pkgs; })
+    ] ++ [
       outputs.overlays.default
-      outputs.overlays.quic-kernel-module-overlay
-      outputs.overlays.samba-overlay
-      outputs.overlays.immich-openvino
     ];
     config = {
       allowUnfree = true;

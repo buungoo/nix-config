@@ -99,4 +99,10 @@
     managementURL = "https://netbird.${inputs.nix-secrets.nas0.domain}:443";
     setupKeyFile = config.sops.secrets."netbird/setup-key".path;
   };
+
+  nixpkgs.overlays = [
+    inputs.self.outputs.overlays.immich-openvino
+    inputs.self.outputs.overlays.quic-kernel-module-overlay
+    inputs.self.outputs.overlays.samba-overlay
+  ];
 }
