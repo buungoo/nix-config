@@ -70,7 +70,35 @@ in
         }) (lib.filterAttrs (name: user: user.primary or false) config.hostSpec.users);
 
         # State directory permissions for login
-        systemd.services."netbird-${cfg.name}".serviceConfig.StateDirectoryMode = lib.mkForce "0750";
+        systemd.services."netbird-${cfg.name}" = {
+          serviceConfig = {
+            StateDirectoryMode = lib.mkForce "0750";
+
+            # Fix "Required key not available" and read-only FS errors
+            # Force userspace WireGuard (software) which is more reliable on some NixOS kernels
+            # Disable SSH and DNS for now to avoid errors with read-only /etc
+            Environment = [
+              "NB_WG_IFACE_TYPE=software"
+              "NB_DISABLE_SSH_AUTH=true"
+              "NB_DISABLE_DNS=true"
+            ];
+
+            # Allow netbird to update DNS and SSH if we ever want to enable them
+            # and to avoid errors during cleanup
+            ReadWritePaths = [
+              "/etc/ssh"
+              "/etc/resolv.conf"
+            ];
+
+            # Ensure we have enough permissions for network management
+            AmbientCapabilities = [
+              "CAP_NET_ADMIN"
+              "CAP_NET_RAW"
+              "CAP_BPF"
+              "CAP_SYS_ADMIN"
+            ];
+          };
+        };
 
         # Point the CLI to the correct socket for this named client
         environment.sessionVariables.NETBIRD_DAEMON_ADDR = "unix:///var/run/netbird-${cfg.name}/sock";
