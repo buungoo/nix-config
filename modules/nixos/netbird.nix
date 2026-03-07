@@ -73,9 +73,14 @@ in
             ip = lib.mkOption { type = lib.types.str; };
             domains = lib.mkOption {
               type = lib.types.listOf lib.types.str;
-              default = [ config.hostSpec.domain ]; # Default to the host domain
+              default = [ ];
+              description = "List of domains this nameserver is responsible for. Leave empty for global DNS.";
             };
             primary = lib.mkOption {
+              type = lib.types.bool;
+              default = true;
+            };
+            searchDomains = lib.mkOption {
               type = lib.types.bool;
               default = true;
             };
@@ -417,22 +422,18 @@ in
 
             echo "Syncing Nameservers via SQLite (Account: $ACCOUNT_ID, Group: $ALL_GROUP_ID)..."
             ${lib.concatMapStringsSep "\n" (ns: ''
-              NS_ID=$(sqlite3 "$DB" "SELECT id FROM name_server_groups WHERE name = '${ns.name}' LIMIT 1;")
+              echo "Re-provisioning nameserver ${ns.name}..."
+              # Delete existing one to ensure all flags are reset correctly
+              sqlite3 "$DB" "DELETE FROM name_server_groups WHERE name = '${ns.name}';"
               
-              # Construct JSON fields
+              NEW_ID=$(cat /proc/sys/kernel/random/uuid | tr -d '-')
               NS_SERVERS_JSON='[{"ip":"${ns.ip}","ns_type":"udp","port":53}]'
               GROUPS_JSON='["'$ALL_GROUP_ID'"]'
               DOMAINS_JSON='${builtins.toJSON ns.domains}'
 
-              if [ -n "$NS_ID" ]; then
-                echo "Updating nameserver ${ns.name} ($NS_ID) with domains $DOMAINS_JSON..."
-                sqlite3 "$DB" "UPDATE name_server_groups SET name_servers = '$NS_SERVERS_JSON', groups = '$GROUPS_JSON', \`primary\` = ${if ns.primary then "1" else "0"}, domains = '$DOMAINS_JSON', enabled = 1 WHERE id = '$NS_ID';"
-              else
-                NEW_ID=$(cat /proc/sys/kernel/random/uuid | tr -d '-')
-                echo "Creating nameserver ${ns.name} ($NEW_ID) with domains $DOMAINS_JSON..."
-                sqlite3 "$DB" "INSERT INTO name_server_groups (id, account_id, name, description, name_servers, groups, \`primary\`, domains, enabled, search_domains_enabled) \
-                  VALUES ('$NEW_ID', '$ACCOUNT_ID', '${ns.name}', 'Managed by NixOS', '$NS_SERVERS_JSON', '$GROUPS_JSON', ${if ns.primary then "1" else "0"}, '$DOMAINS_JSON', 1, 1);"
-              fi
+              echo "Creating nameserver ${ns.name} ($NEW_ID): domains=$DOMAINS_JSON, primary=${if ns.primary then "1" else "0"}, search=${if ns.searchDomains then "1" else "0"}"
+              sqlite3 "$DB" "INSERT INTO name_server_groups (id, account_id, name, description, name_servers, groups, \`primary\`, domains, enabled, search_domains_enabled) \
+                VALUES ('$NEW_ID', '$ACCOUNT_ID', '${ns.name}', 'Managed by NixOS', '$NS_SERVERS_JSON', '$GROUPS_JSON', ${if ns.primary then "1" else "0"}, '$DOMAINS_JSON', 1, ${if ns.searchDomains then "1" else "0"});"
             '') cfg.nameservers}
             
             # Restart management to pick up DB changes

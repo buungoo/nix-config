@@ -89,7 +89,9 @@
       {
         name = "${config.hostSpec.hostName}-unbound";
         ip = "100.75.0.5";
-        primary = true;
+        primary = false;
+        domains = [ "." ];
+        searchDomains = false;
       }
     ];
   };
