@@ -69,8 +69,8 @@ in
 
     torrentPath = lib.mkOption {
       type = lib.types.str;
-      default = "/mnt/storage/arr/torrents";
-      description = "Host path to the torrents directory (used for data and linking)";
+      default = "/mnt/storage/arr";
+      description = "Host path to the arr root directory (used for torrents and linking)";
     };
 
     extraSettings = lib.mkOption {
@@ -113,7 +113,7 @@ in
         # Setup bindmount directories
         systemd.tmpfiles.rules = [
           "d ${cfg.dataDir} 0755 ${uid} ${gid} -"
-          "d ${cfg.torrentPath}/cross-seed 2775 ${uid} ${toString mediaGid} -"
+          "d ${cfg.torrentPath}/torrents/cross-seed 2775 ${uid} ${toString mediaGid} -"
         ];
 
         # Fetch secrets
@@ -132,7 +132,22 @@ in
               config.sops.placeholder."qbit/plaintext_password"
             }@${qbitNet.containerIP}:${toString config.custom.services.qbittorrent.port}";
             torznab = [
-              "http://${prowlarrNet.containerIP}:${toString config.custom.services.prowlarr.port}/prowlarr/1/api?apikey=${
+              "http://${prowlarrNet.containerIP}:${toString config.custom.services.prowlarr.port}/2/api?apikey=${
+                config.sops.placeholder."prowlarr/api-key"
+              }"
+              "http://${prowlarrNet.containerIP}:${toString config.custom.services.prowlarr.port}/3/api?apikey=${
+                config.sops.placeholder."prowlarr/api-key"
+              }"
+              "http://${prowlarrNet.containerIP}:${toString config.custom.services.prowlarr.port}/7/api?apikey=${
+                config.sops.placeholder."prowlarr/api-key"
+              }"
+              "http://${prowlarrNet.containerIP}:${toString config.custom.services.prowlarr.port}/8/api?apikey=${
+                config.sops.placeholder."prowlarr/api-key"
+              }"
+              "http://${prowlarrNet.containerIP}:${toString config.custom.services.prowlarr.port}/12/api?apikey=${
+                config.sops.placeholder."prowlarr/api-key"
+              }"
+              "http://${prowlarrNet.containerIP}:${toString config.custom.services.prowlarr.port}/14/api?apikey=${
                 config.sops.placeholder."prowlarr/api-key"
               }"
             ];
@@ -162,7 +177,7 @@ in
               hostPath = cfg.dataDir;
               isReadOnly = false;
             };
-            "/arr/torrents" = {
+            "/arr" = {
               hostPath = cfg.torrentPath;
               isReadOnly = false;
             };
