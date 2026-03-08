@@ -36,9 +36,6 @@
     };
   };
 
-  # nas1 is behind CGNAT, only update IPv6
-  services.cloudflare-dyndns.ipv4 = lib.mkForce false;
-
   custom.services.qbittorrent.vpn.enable = false;
   custom.services.qbittorrent.vpnFile = inputs.nix-secrets + "/nix/nas1/qbit.nix";
   custom.services.prowlarr.indexerFile = inputs.nix-secrets + "/nix/nas1/prowlarr-indexers.nix";
