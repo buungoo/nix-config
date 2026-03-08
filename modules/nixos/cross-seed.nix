@@ -114,6 +114,8 @@ in
         systemd.tmpfiles.rules = [
           "d ${cfg.dataDir} 0755 ${uid} ${gid} -"
           "d ${cfg.torrentPath}/torrents/cross-seed 2775 ${uid} ${toString mediaGid} -"
+          # Recursively fix ownership/permissions
+          "Z ${cfg.torrentPath}/torrents/cross-seed 2775 ${uid} ${toString mediaGid} -"
         ];
 
         # Fetch secrets
@@ -223,8 +225,8 @@ in
                   linkDirs = [ "/arr/torrents/cross-seed" ];
                   matchMode = "partial"; # allow files that do not fully match
                   fuzzySizeThreshold = 0.02; # default, size deviation in percentage
-                  autoResumeMaxDownload = 52428800; # default, what even is this? bytes
-                  ignoreNonRelevantFilesToResume = false; # default, what even is this?
+                  autoResumeMaxDownload = 1073741824; # 1GB, allows auto-resuming large packs with missing edge pieces
+                  ignoreNonRelevantFilesToResume = false; # default
                   action = "inject";
                   skipRecheck = true;
                 } cfg.extraSettings;
