@@ -74,10 +74,8 @@ in
         "*.unrecoverable"
         "/tmp/"
         "/lost+found/"
-        "downloads/" # Temporary downloads
-        "appdata/" # Application temp data
-        "*.!sync" # Syncthing temp files
-        "/.snapshots/" # Don't include snapshots in parity (CRITICAL!)
+        "/.snapshots/"
+        "/data_temp/"
       ];
 
       touch = true; # Help detect moved files

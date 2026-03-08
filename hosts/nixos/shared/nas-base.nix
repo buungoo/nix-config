@@ -71,7 +71,10 @@
 
   hostSpec.isServer = true;
 
-  custom.services.jellyfin.enable = true;
+  custom.services.jellyfin = {
+    enable = true;
+    secretsFile = "${builtins.toString inputs.nix-secrets}/sops/${config.hostSpec.hostName}.yaml";
+  };
   custom.services.immich.enable = true;
   custom.services.sonarr.enable = true;
   custom.services.qbittorrent.enable = true;

@@ -114,6 +114,12 @@ in
       description = "Sops secret name for the qBittorrent WebUI password";
     };
 
+    vpnFile = lib.mkOption {
+      type = lib.types.nullOr lib.types.path;
+      default = null;
+      description = "Path to the nix file containing VPN secrets.";
+    };
+
     serverConfig = lib.mkOption {
       type = lib.types.attrs;
       default = { };
@@ -290,7 +296,12 @@ in
               net
               // {
                 inherit (config.hostSpec) stateVersion;
-                dns = lib.optional cfg.vpn.enable cfg.vpn.dns ++ [ "1.1.1.1" ];
+                dns = lib.optional cfg.vpn.enable (
+                  let
+                    qbitSecrets = if cfg.vpnFile != null then (import cfg.vpnFile) { inherit config; } else null;
+                  in
+                  if qbitSecrets != null then qbitSecrets.wg.dns else "1.1.1.1"
+                ) ++ [ "1.1.1.1" ];
               }
             ))
             {
@@ -305,19 +316,24 @@ in
                 ip route add 172.16.0.0/12 via ${net.gatewayIP} dev eth0 table main priority 100
               '';
 
-              networking.wg-quick.interfaces.wg0 = lib.mkIf cfg.vpn.enable {
-                privateKeyFile = "/run/secrets/${cfg.vpn.privateKeySecret}";
-                address = [ cfg.vpn.address ];
-                autostart = true;
-                peers = [
-                  {
-                    publicKey = cfg.vpn.peer.publicKey;
-                    endpoint = cfg.vpn.peer.endpoint;
-                    allowedIPs = cfg.vpn.peer.allowedIPs;
-                    persistentKeepalive = 25;
-                  }
-                ];
-              };
+              networking.wg-quick.interfaces.wg0 = lib.mkIf cfg.vpn.enable (
+                let
+                  qbitSecrets = if cfg.vpnFile != null then (import cfg.vpnFile) { inherit config; } else null;
+                in
+                if qbitSecrets == null then { } else {
+                  privateKeyFile = qbitSecrets.wg.private_key_path;
+                  address = [ qbitSecrets.wg.address ];
+                  autostart = true;
+                  peers = [
+                    {
+                      publicKey = qbitSecrets.wg.public_key;
+                      endpoint = qbitSecrets.wg.endpoint;
+                      allowedIPs = qbitSecrets.wg.allowed_ips;
+                      persistentKeepalive = qbitSecrets.wg.persistent_keepalive;
+                    }
+                  ];
+                }
+              );
 
               # qBittorrent service
               services.qbittorrent = {
@@ -412,59 +428,64 @@ in
               ];
 
               # NAT-PMP port forwarding for ProtonVPN
-              systemd.services.qbit-portforward = lib.mkIf cfg.vpn.enable {
-                description = "Renew ProtonVPN port forwarding for qBittorrent";
-                after = [
-                  "wg-quick-wg0.service"
-                  "qbittorrent.service"
-                ];
-                wants = [ "wg-quick-wg0.service" ];
-                serviceConfig = {
-                  Type = "oneshot";
-                  ExecStart = pkgs.writeShellScript "qbit-portforward" ''
-                    CONF="/var/lib/qbittorrent/qBittorrent/config/qBittorrent.conf"
-                    CURRENT_PORT=$(${pkgs.gnugrep}/bin/grep -E '^(Session|Connection)\\\\Port=' "$CONF" \
-                      | ${pkgs.coreutils}/bin/tail -n1 | ${pkgs.coreutils}/bin/cut -d= -f2)
-                    if [ -z "$CURRENT_PORT" ]; then
-                      # Fallback to a high port if config is missing.
-                      CURRENT_PORT=50000
-                    fi
+              systemd.services.qbit-portforward = lib.mkIf cfg.vpn.enable (
+                let
+                  qbitSecrets = if cfg.vpnFile != null then (import cfg.vpnFile) { inherit config; } else null;
+                in
+                {
+                  description = "Renew ProtonVPN port forwarding for qBittorrent";
+                  after = [
+                    "wg-quick-wg0.service"
+                    "qbittorrent.service"
+                  ];
+                  wants = [ "wg-quick-wg0.service" ];
+                  serviceConfig = {
+                    Type = "oneshot";
+                    ExecStart = pkgs.writeShellScript "qbit-portforward" ''
+                      CONF="/var/lib/qbittorrent/qBittorrent/config/qBittorrent.conf"
+                      CURRENT_PORT=$(${pkgs.gnugrep}/bin/grep -E '^(Session|Connection)\\\\Port=' "$CONF" \
+                        | ${pkgs.coreutils}/bin/tail -n1 | ${pkgs.coreutils}/bin/cut -d= -f2)
+                      if [ -z "$CURRENT_PORT" ]; then
+                        # Fallback to a high port if config is missing.
+                        CURRENT_PORT=50000
+                      fi
 
-                    MAP_TCP=$(${pkgs.libnatpmp}/bin/natpmpc -a "$CURRENT_PORT" 0 tcp 60 -g ${cfg.vpn.dns} \
-                      | ${pkgs.gnugrep}/bin/grep 'Mapped public port')
-                    PORT=$(${pkgs.gawk}/bin/awk '{print $4}' <<< "$MAP_TCP")
-                    LOCAL=$(${pkgs.gawk}/bin/awk '{print $10}' <<< "$MAP_TCP")
+                      MAP_TCP=$(${pkgs.libnatpmp}/bin/natpmpc -a "$CURRENT_PORT" 0 tcp 60 -g ${qbitSecrets.wg.dns} \
+                        | ${pkgs.gnugrep}/bin/grep 'Mapped public port')
+                      PORT=$(${pkgs.gawk}/bin/awk '{print $4}' <<< "$MAP_TCP")
+                      LOCAL=$(${pkgs.gawk}/bin/awk '{print $10}' <<< "$MAP_TCP")
 
-                    if [ -z "$PORT" ]; then
-                      echo "Failed to get port from NAT-PMP"
-                      exit 1
-                    fi
+                      if [ -z "$PORT" ]; then
+                        echo "Failed to get port from NAT-PMP"
+                        exit 1
+                      fi
 
-                    # If the public port differs, switch qBittorrent to the public port
-                    # and re-request mappings to keep public/local ports aligned.
-                    if [ "$PORT" != "$CURRENT_PORT" ]; then
-                      CURRENT_PORT="$PORT"
-                    fi
+                      # If the public port differs, switch qBittorrent to the public port
+                      # and re-request mappings to keep public/local ports aligned.
+                      if [ "$PORT" != "$CURRENT_PORT" ]; then
+                        CURRENT_PORT="$PORT"
+                      fi
 
-                    # Map TCP/UDP for the chosen local port.
-                    ${pkgs.libnatpmp}/bin/natpmpc -a "$CURRENT_PORT" 0 tcp 60 -g ${cfg.vpn.dns} >/dev/null
-                    ${pkgs.libnatpmp}/bin/natpmpc -a "$CURRENT_PORT" 0 udp 60 -g ${cfg.vpn.dns} >/dev/null
+                      # Map TCP/UDP for the chosen local port.
+                      ${pkgs.libnatpmp}/bin/natpmpc -a "$CURRENT_PORT" 0 tcp 60 -g ${qbitSecrets.wg.dns} >/dev/null
+                      ${pkgs.libnatpmp}/bin/natpmpc -a "$CURRENT_PORT" 0 udp 60 -g ${qbitSecrets.wg.dns} >/dev/null
 
-                    # Authenticate and update qBittorrent listening port
-                    PASSWORD=$(cat /run/secrets/qbit/plaintext_password)
-                    COOKIE=$(mktemp)
-                    ${pkgs.curl}/bin/curl -s -b "$COOKIE" -c "$COOKIE" \
-                      http://localhost:${toString cfg.port}/api/v2/auth/login \
-                      -d "username=bungo&password=$PASSWORD"
-                    ${pkgs.curl}/bin/curl -s -b "$COOKIE" \
-                      http://localhost:${toString cfg.port}/api/v2/app/setPreferences \
-                      -d "json={\"listen_port\":$CURRENT_PORT}"
-                    rm -f "$COOKIE"
+                      # Authenticate and update qBittorrent listening port
+                      PASSWORD=$(cat /run/secrets/qbit/plaintext_password)
+                      COOKIE=$(mktemp)
+                      ${pkgs.curl}/bin/curl -s -b "$COOKIE" -c "$COOKIE" \
+                        http://localhost:${toString cfg.port}/api/v2/auth/login \
+                        -d "username=bungo&password=$PASSWORD"
+                      ${pkgs.curl}/bin/curl -s -b "$COOKIE" \
+                        http://localhost:${toString cfg.port}/api/v2/app/setPreferences \
+                        -d "json={\"listen_port\":$CURRENT_PORT}"
+                      rm -f "$COOKIE"
 
-                    echo "Forwarded public port $PORT (local $CURRENT_PORT)"
-                  '';
-                };
-              };
+                      echo "Forwarded public port $PORT (local $CURRENT_PORT)"
+                    '';
+                  };
+                }
+              );
               systemd.timers.qbit-portforward = lib.mkIf cfg.vpn.enable {
                 wantedBy = [ "timers.target" ];
                 timerConfig = {

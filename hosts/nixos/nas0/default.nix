@@ -36,6 +36,31 @@
     };
   };
 
+  custom.services.prowlarr = {
+    enable = true;
+    indexerFile = inputs.nix-secrets + "/nix/nas0/prowlarr-indexers.nix";
+    indexers = {
+      indexer-a = { secretName = "prowlarr/indexer-a/api-key"; };
+      indexer-b-api = { secretName = "prowlarr/indexer-b/api-key"; };
+      indexer-b-rss = { secretName = "prowlarr/indexer-b/rss-key"; };
+      indexer-c = { secretName = "prowlarr/indexer-c/api-key"; };
+      indexer-d = { secretName = "prowlarr/indexer-d/api-key"; };
+      indexer-e = { secretName = "prowlarr/indexer-e/api-key"; };
+      indexer-f = { secretName = "prowlarr/indexer-f/api-key"; };
+    };
+  };
+
+  custom.services.qbittorrent.vpnFile = inputs.nix-secrets + "/nix/nas0/qbit.nix";
+
+  custom.services.cross-seed = {
+    enable = true;
+  } // (import (inputs.nix-secrets + "/nix/nas0/cross-seed.nix") {
+    inherit config;
+    prowlarrNet = lib.custom.mkContainerNetworkConfig config "arr" "prowlarr";
+    sonarrNet = lib.custom.mkContainerNetworkConfig config "arr" "sonarr";
+    radarrNet = lib.custom.mkContainerNetworkConfig config "arr" "radarr";
+  });
+
   system.stateVersion = config.hostSpec.stateVersion;
 
   # set the CPU scaling governor system-wide - Commented this out because I think the machine handles this automatically? The BIOS suggests so

@@ -78,6 +78,24 @@ in
       default = { };
       description = "Additional cross-seed settings";
     };
+
+    torznab = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ "http://placeholder" ];
+      description = "List of Torznab URLs.";
+    };
+
+    sonarr = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      description = "List of Sonarr URLs.";
+    };
+
+    radarr = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      description = "List of Radarr URLs.";
+    };
   };
 
   # Implementation
@@ -133,36 +151,9 @@ in
             qbittorrentUrl = "http://bungo:${
               config.sops.placeholder."qbit/plaintext_password"
             }@${qbitNet.containerIP}:${toString config.custom.services.qbittorrent.port}";
-            torznab = [
-              "http://${prowlarrNet.containerIP}:${toString config.custom.services.prowlarr.port}/2/api?apikey=${
-                config.sops.placeholder."prowlarr/api-key"
-              }"
-              "http://${prowlarrNet.containerIP}:${toString config.custom.services.prowlarr.port}/3/api?apikey=${
-                config.sops.placeholder."prowlarr/api-key"
-              }"
-              "http://${prowlarrNet.containerIP}:${toString config.custom.services.prowlarr.port}/7/api?apikey=${
-                config.sops.placeholder."prowlarr/api-key"
-              }"
-              "http://${prowlarrNet.containerIP}:${toString config.custom.services.prowlarr.port}/8/api?apikey=${
-                config.sops.placeholder."prowlarr/api-key"
-              }"
-              "http://${prowlarrNet.containerIP}:${toString config.custom.services.prowlarr.port}/12/api?apikey=${
-                config.sops.placeholder."prowlarr/api-key"
-              }"
-              "http://${prowlarrNet.containerIP}:${toString config.custom.services.prowlarr.port}/14/api?apikey=${
-                config.sops.placeholder."prowlarr/api-key"
-              }"
-            ];
-            sonarr = [
-              "http://${sonarrNet.containerIP}:${toString config.custom.services.sonarr.port}/?apikey=${
-                config.sops.placeholder."sonarr/api-key"
-              }"
-            ];
-            radarr = [
-              "http://${radarrNet.containerIP}:${toString config.custom.services.radarr.port}/?apikey=${
-                config.sops.placeholder."radarr/api-key"
-              }"
-            ];
+            torznab = cfg.torznab;
+            sonarr = cfg.sonarr;
+            radarr = cfg.radarr;
           };
           owner = "root";
           group = "root";
@@ -225,7 +216,7 @@ in
                   linkDirs = [ "/arr/torrents/cross-seed" ];
                   matchMode = "partial"; # allow files that do not fully match
                   fuzzySizeThreshold = 0.02; # default, size deviation in percentage
-                  autoResumeMaxDownload = 1073741824; # 1GB, allows auto-resuming large packs with missing edge pieces
+                  autoResumeMaxDownload = 52428800; # max allowed by cross-seed v6
                   ignoreNonRelevantFilesToResume = false; # default
                   action = "inject";
                   skipRecheck = true;

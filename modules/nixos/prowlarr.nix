@@ -15,7 +15,6 @@ let
   gid = toString cfg.gid;
 
   sopsFolder = builtins.toString inputs.nix-secrets + "/sops";
-  indexers = import (inputs.nix-secrets + "/nix/prowlarr-indexers.nix");
 in
 {
   options.custom.services.prowlarr = {
@@ -62,222 +61,195 @@ in
       default = "/var/lib/prowlarr";
       description = "Host path for persistent Prowlarr application data";
     };
+
+    indexerFile = lib.mkOption {
+      type = lib.types.nullOr lib.types.path;
+      default = null;
+      description = "Path to the nix file containing indexer definitions.";
+    };
+
+    indexers = lib.mkOption {
+      type = lib.types.attrsOf (lib.types.submodule {
+        options = {
+          secretName = lib.mkOption { type = lib.types.str; };
+          owner = lib.mkOption { type = lib.types.str; default = "prowlarr"; };
+          group = lib.mkOption { type = lib.types.str; default = "prowlarr"; };
+          mode = lib.mkOption { type = lib.types.str; default = "0400"; };
+        };
+      });
+      default = { };
+      description = "Map of indexer secret names to their configuration.";
+    };
   };
 
   # Implementation
   config = lib.mkIf cfg.enable (
+    let
+      dynamicIndexers = if cfg.indexerFile != null then (import cfg.indexerFile) else { };
+    in
     lib.mkMerge [
-      (lib.custom.mkContainerServiceConfig "prowlarr" { })
-      {
-        # Create user on host
-        users.users.prowlarr = {
-          isSystemUser = true;
-          group = "prowlarr";
-          uid = cfg.uid;
-        };
-        users.groups.prowlarr.gid = cfg.gid;
+        (lib.custom.mkContainerServiceConfig "prowlarr" { })
+        {
+          # Create user on host
+          users.users.prowlarr = {
+            isSystemUser = true;
+            group = "prowlarr";
+            uid = cfg.uid;
+          };
+          users.groups.prowlarr.gid = cfg.gid;
 
-        # Register reverse proxy
-        custom.reverseProxy.virtualHosts.prowlarr = {
-          domain = cfg.domain;
-          backendHost = net.containerIP;
-          backendPort = cfg.port;
-          backendSSL = false;
-        };
-
-        # Register container network
-        hostSpec.networking.containerNetworks.${cfg.network} = {
-          bridge = lib.mkDefault "${cfg.network}-bridge";
-          subnet = lib.mkDefault "10.0.1.0/24";
-          gateway = lib.mkDefault "10.0.1.1";
-          containers.prowlarr = lib.mkDefault cfg.hostOctet;
-        };
-
-        # Setup bindmount directories
-        systemd.tmpfiles.rules = [
-          "d ${cfg.dataDir} 0755 ${uid} ${gid} -"
-        ];
-
-        # Fetch secrets
-        sops.secrets."prowlarr/api-key" = {
-          sopsFile = "${sopsFolder}/${config.hostSpec.hostName}.yaml";
-          owner = "prowlarr";
-          group = "media";
-          mode = "0440";
-        };
-        sops.secrets."prowlarr/password" = {
-          sopsFile = "${sopsFolder}/${config.hostSpec.hostName}.yaml";
-          owner = "prowlarr";
-          group = "prowlarr";
-          mode = "0400";
-        };
-        sops.secrets."prowlarr/indexer-a/api-key" = {
-          sopsFile = "${sopsFolder}/${config.hostSpec.hostName}.yaml";
-          owner = "prowlarr";
-          group = "prowlarr";
-          mode = "0400";
-        };
-        sops.secrets."prowlarr/indexer-b/api-key" = {
-          sopsFile = "${sopsFolder}/${config.hostSpec.hostName}.yaml";
-          owner = "prowlarr";
-          group = "prowlarr";
-          mode = "0400";
-        };
-        sops.secrets."prowlarr/indexer-b/rss-key" = {
-          sopsFile = "${sopsFolder}/${config.hostSpec.hostName}.yaml";
-          owner = "prowlarr";
-          group = "prowlarr";
-          mode = "0400";
-        };
-        sops.secrets."prowlarr/indexer-c/api-key" = {
-          sopsFile = "${sopsFolder}/${config.hostSpec.hostName}.yaml";
-          owner = "prowlarr";
-          group = "prowlarr";
-          mode = "0400";
-        };
-        sops.secrets."prowlarr/indexer-d/api-key" = {
-          sopsFile = "${sopsFolder}/${config.hostSpec.hostName}.yaml";
-          owner = "prowlarr";
-          group = "prowlarr";
-          mode = "0400";
-        };
-        sops.secrets."prowlarr/indexer-e/api-key" = {
-          sopsFile = "${sopsFolder}/${config.hostSpec.hostName}.yaml";
-          owner = "prowlarr";
-          group = "prowlarr";
-          mode = "0400";
-        };
-        sops.secrets."prowlarr/indexer-f/api-key" = {
-          sopsFile = "${sopsFolder}/${config.hostSpec.hostName}.yaml";
-          owner = "prowlarr";
-          group = "prowlarr";
-          mode = "0400";
-        };
-
-        # Container definition
-        containers.prowlarr = {
-          autoStart = true;
-          ephemeral = true;
-
-          bindMounts = {
-            "/var/lib/prowlarr" = {
-              hostPath = cfg.dataDir;
-              isReadOnly = false;
-            };
-            "/run/secrets/prowlarr/api-key" = {
-              hostPath = config.sops.secrets."prowlarr/api-key".path;
-              isReadOnly = true;
-            };
-            "/run/secrets/prowlarr/password" = {
-              hostPath = config.sops.secrets."prowlarr/password".path;
-              isReadOnly = true;
-            };
-            "/run/secrets/sonarr/api-key" = {
-              hostPath = config.sops.secrets."sonarr/api-key".path;
-              isReadOnly = true;
-            };
-            "/run/secrets/radarr/api-key" = {
-              hostPath = config.sops.secrets."radarr/api-key".path;
-              isReadOnly = true;
-            };
-            "/run/secrets/prowlarr/indexer-a/api-key" = {
-              hostPath = config.sops.secrets."prowlarr/indexer-a/api-key".path;
-              isReadOnly = true;
-            };
-            "/run/secrets/prowlarr/indexer-b/api-key" = {
-              hostPath = config.sops.secrets."prowlarr/indexer-b/api-key".path;
-              isReadOnly = true;
-            };
-            "/run/secrets/prowlarr/indexer-b/rss-key" = {
-              hostPath = config.sops.secrets."prowlarr/indexer-b/rss-key".path;
-              isReadOnly = true;
-            };
-            "/run/secrets/prowlarr/indexer-c/api-key" = {
-              hostPath = config.sops.secrets."prowlarr/indexer-c/api-key".path;
-              isReadOnly = true;
-            };
-            "/run/secrets/prowlarr/indexer-d/api-key" = {
-              hostPath = config.sops.secrets."prowlarr/indexer-d/api-key".path;
-              isReadOnly = true;
-            };
-            "/run/secrets/prowlarr/indexer-e/api-key" = {
-              hostPath = config.sops.secrets."prowlarr/indexer-e/api-key".path;
-              isReadOnly = true;
-            };
-            "/run/secrets/prowlarr/indexer-f/api-key" = {
-              hostPath = config.sops.secrets."prowlarr/indexer-f/api-key".path;
-              isReadOnly = true;
-            };
+          # Register reverse proxy
+          custom.reverseProxy.virtualHosts.prowlarr = {
+            domain = cfg.domain;
+            backendHost = net.containerIP;
+            backendPort = cfg.port;
+            backendSSL = false;
           };
 
-          # Network
-          privateNetwork = true;
-          hostBridge = net.bridge;
-          localAddress = "${net.containerIP}/${net.cidr}";
+          # Register container network
+          hostSpec.networking.containerNetworks.${cfg.network} = {
+            bridge = lib.mkDefault "${cfg.network}-bridge";
+            subnet = lib.mkDefault "10.0.1.0/24";
+            gateway = lib.mkDefault "10.0.1.1";
+            containers.prowlarr = lib.mkDefault cfg.hostOctet;
+          };
 
-          forwardPorts = [
-            {
-              hostPort = cfg.port;
-              containerPort = cfg.port;
-            }
+          # Setup bindmount directories
+          systemd.tmpfiles.rules = [
+            "d ${cfg.dataDir} 0755 ${uid} ${gid} -"
           ];
 
-          config = lib.mkMerge [
-            (lib.custom.mkContainerBaseConfig (net // { inherit (config.hostSpec) stateVersion; }))
-            {
-              imports = [ declarrModule ];
+          # Fetch secrets
+          sops.secrets."prowlarr/api-key" = {
+            sopsFile = "${sopsFolder}/${config.hostSpec.hostName}.yaml";
+            owner = "prowlarr";
+            group = "media";
+            mode = "0440";
+          };
+          sops.secrets."prowlarr/password" = {
+            sopsFile = "${sopsFolder}/${config.hostSpec.hostName}.yaml";
+            owner = "prowlarr";
+            group = "prowlarr";
+            mode = "0400";
+          };
+        }
+        # Dynamically generate indexer secrets from options
+        # We merge these into sops.secrets by generating the attribute set directly
+        {
+          sops.secrets = lib.mkMerge (lib.mapAttrsToList (name: indexer: {
+            "${indexer.secretName}" = {
+              sopsFile = "${sopsFolder}/${config.hostSpec.hostName}.yaml";
+              inherit (indexer) owner group mode;
+            };
+          }) cfg.indexers);
+        }
+        {
+          # Container definition
+          containers.prowlarr = {
+            autoStart = true;
+            ephemeral = true;
 
-              services.prowlarr = {
-                enable = true;
-                openFirewall = true;
-                dataDir = "/var/lib/prowlarr";
-                # openssl rand -hex 16
-                apiKeyFile = "/run/secrets/prowlarr/api-key";
-              };
+            bindMounts = lib.mkMerge [
+              {
+                "/var/lib/prowlarr" = {
+                  hostPath = cfg.dataDir;
+                  isReadOnly = false;
+                };
+                "/run/secrets/prowlarr/api-key" = {
+                  hostPath = config.sops.secrets."prowlarr/api-key".path;
+                  isReadOnly = true;
+                };
+                "/run/secrets/prowlarr/password" = {
+                  hostPath = config.sops.secrets."prowlarr/password".path;
+                  isReadOnly = true;
+                };
+                "/run/secrets/sonarr/api-key" = {
+                  hostPath = config.sops.secrets."sonarr/api-key".path;
+                  isReadOnly = true;
+                };
+                "/run/secrets/radarr/api-key" = {
+                  hostPath = config.sops.secrets."radarr/api-key".path;
+                  isReadOnly = true;
+                };
+              }
+              # Dynamically generate indexer bind mounts
+              (lib.mapAttrs' (name: indexer: {
+                name = "/run/secrets/${indexer.secretName}";
+                value = {
+                  hostPath = config.sops.secrets."${indexer.secretName}".path;
+                  isReadOnly = true;
+                };
+              }) cfg.indexers)
+            ];
 
-              # Declarr configures prowlarr via API during runtime
-              services.declarr = {
-                enable = true;
-                user = "prowlarr";
-                group = "prowlarr";
-                config = {
-                  declarr = {
-                    stateDir = "/var/lib/prowlarr";
-                    globalResolvePaths = [
-                      "$.*.config.host.password"
-                      "$.*.config.host.passwordConfirmation"
-                      "$.*.config.host.apiKey"
-                      "$.*.applications.*.fields.apiKey"
-                      "$.*.indexer.*.fields.apikey"
-                      "$.*.indexer.*.fields.rsskey"
-                    ];
-                  };
+            # Network
+            privateNetwork = true;
+            hostBridge = net.bridge;
+            localAddress = "${net.containerIP}/${net.cidr}";
 
-                  prowlarr = {
+            forwardPorts = [
+              {
+                hostPort = cfg.port;
+                containerPort = cfg.port;
+              }
+            ];
+
+            config = lib.mkMerge [
+              (lib.custom.mkContainerBaseConfig (net // { inherit (config.hostSpec) stateVersion; }))
+              {
+                imports = [ declarrModule ];
+
+                services.prowlarr = {
+                  enable = true;
+                  openFirewall = true;
+                  dataDir = "/var/lib/prowlarr";
+                  # openssl rand -hex 16
+                  apiKeyFile = "/run/secrets/prowlarr/api-key";
+                };
+
+                # Declarr configures prowlarr via API during runtime
+                services.declarr = {
+                  enable = true;
+                  user = "prowlarr";
+                  group = "prowlarr";
+                  config = {
                     declarr = {
-                      type = "prowlarr";
-                      url = "http://localhost:${toString cfg.port}";
-                    };
-                    config.host = {
-                      apiKey = "/run/secrets/prowlarr/api-key";
-                      authenticationMethod = "forms";
-                      authenticationRequired = "disabledForLocalAddresses";
-                      username = "bungo";
-                      password = config.sops.secrets."prowlarr/password".path;
-                      passwordConfirmation = config.sops.secrets."prowlarr/password".path;
-                    };
-
-                    # Honestly just yoinked this from https://github.com/xhos/nix/blob/main/modules/nixos/opt/_enrai/services/media/prowlarr.nix
-                    appProfile.Standard = {
-                      enableRss = true;
-                      enableAutomaticSearch = true;
-                      enableInteractiveSearch = true;
-                      minimumSeeders = 1;
+                      stateDir = "/var/lib/prowlarr";
+                      globalResolvePaths = [
+                        "$.*.config.host.password"
+                        "$.*.config.host.passwordConfirmation"
+                        "$.*.config.host.apiKey"
+                        "$.*.applications.*.fields.apiKey"
+                        "$.*.indexer.*.fields.apikey"
+                        "$.*.indexer.*.fields.rsskey"
+                      ];
                     };
 
-                    indexer = indexers;
+                    prowlarr = {
+                      declarr = {
+                        type = "prowlarr";
+                        url = "http://localhost:${toString cfg.port}";
+                      };
+                      config.host = {
+                        apiKey = "/run/secrets/prowlarr/api-key";
+                        authenticationMethod = "forms";
+                        authenticationRequired = "disabledForLocalAddresses";
+                        username = "bungo";
+                        password = config.sops.secrets."prowlarr/password".path;
+                        passwordConfirmation = config.sops.secrets."prowlarr/password".path;
+                      };
 
-                    indexerProxy = { }; # This is a requirement? Why not default??
+                      # Honestly just yoinked this from https://github.com/xhos/nix/blob/main/modules/nixos/opt/_enrai/services/media/prowlarr.nix
+                      appProfile.Standard = {
+                        enableRss = true;
+                        enableAutomaticSearch = true;
+                        enableInteractiveSearch = true;
+                        minimumSeeders = 1;
+                      };
+
+                      indexer = dynamicIndexers;
+
+                      indexerProxy = { }; # This is a requirement? Why not default??
                     applications = {
                       Sonarr = {
                         implementation = "Sonarr";

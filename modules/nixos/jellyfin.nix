@@ -163,6 +163,12 @@ in
       description = "Container path → host path mappings for media directories (read-only bind mounts)";
     };
 
+    secretsFile = lib.mkOption {
+      type = lib.types.path;
+      default = "${builtins.toString inputs.nix-secrets}/sops/shared.yaml";
+      description = "Path to the SOPS file containing jellarr secrets.";
+    };
+
     jellarr = { };
   };
 
@@ -212,7 +218,7 @@ in
         sops.secrets = {
           # openssl rand -base64 48
           "jellarr/api-key" = {
-            sopsFile = "${sopsFolder}/shared.yaml";
+            sopsFile = cfg.secretsFile;
             owner = "root";
             group = "media";
             mode = "0440";
@@ -221,7 +227,7 @@ in
         // lib.mapAttrs' (username: _: {
           name = "jellarr/passwords/${username}";
           value = {
-            sopsFile = "${sopsFolder}/shared.yaml";
+            sopsFile = cfg.secretsFile;
             owner = "root";
             group = "media";
             mode = "0440";

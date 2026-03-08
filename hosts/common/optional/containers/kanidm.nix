@@ -74,7 +74,7 @@ in
         # Kanidm data directory
         # Must be on real btrfs, not mergerfs, for SQLite database mmap support
         "${kanidmData}" = {
-          hostPath = "/mnt/disks/data0/kanidm";
+          hostPath = "/var/lib/kanidm";
           isReadOnly = false;
         };
         # Mount ACME certificates

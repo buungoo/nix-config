@@ -61,10 +61,10 @@ rec {
     "/" = mkBtrfsSubvolume "/" "/mnt/root/${diskName}" { };
 
     # Data subvolume (main storage)
-    "/data" = mkBtrfsSubvolume "/data" "/mnt/disks/${diskName}" { };
+    "/data" = mkBtrfsSubvolume "/data" "/mnt/disks/${diskName}/data" { };
 
     # Snapshots subvolume (for snapper)
-    "/.snapshots" = mkBtrfsSubvolume "/.snapshots" "/mnt/disks/${diskName}/.snapshots" { };
+    "/.snapshots" = mkBtrfsSubvolume "/.snapshots" "/mnt/disks/${diskName}/data/.snapshots" { };
 
     # Content subvolume (for snapraid metadata - NOCOW!)
     "/content" = mkBtrfsSubvolume "/content" "/mnt/snapraid-content/${diskName}" {
@@ -129,13 +129,13 @@ rec {
   # Usage:
   #   mkSnapraidDataDisks [ { name = "data0"; ... } { name = "data1"; ... } ]
   #
-  # Output: { d0 = "/mnt/disks/data0"; d1 = "/mnt/disks/data1"; }
+  # Output: { data0 = "/mnt/disks/data0/data"; data1 = "/mnt/disks/data1/data"; }
   mkSnapraidDataDisks =
     dataDisks:
     builtins.listToAttrs (
-      lib.lists.imap0 (i: d: {
-        name = "d${toString i}";
-        value = "/mnt/disks/${d.name}";
+      builtins.map (d: {
+        name = "${d.name}";
+        value = "/mnt/disks/${d.name}/data";
       }) dataDisks
     );
 
@@ -183,7 +183,7 @@ rec {
       builtins.map (d: {
         name = "${d.name}";
         value = {
-          SUBVOLUME = "/mnt/disks/${d.name}";
+          SUBVOLUME = "/mnt/disks/${d.name}/data";
           TIMELINE_CREATE = timelineCreate;
           NUMBER_LIMIT = numberLimit;
           NUMBER_LIMIT_IMPORTANT = numberLimitImportant;
@@ -206,7 +206,7 @@ rec {
       cacheFiles ? "off", # Disable file caching for NAS reliability
     }:
     {
-      device = lib.strings.concatMapStringsSep ":" (d: "/mnt/disks/${d.name}") dataDisks;
+      device = lib.strings.concatMapStringsSep ":" (d: "/mnt/disks/${d.name}/data") dataDisks;
       fsType = "fuse.mergerfs";
       options = [
         "defaults"

@@ -173,16 +173,6 @@ in
         message = "services.snapraid-btrfs.dataDisks must not be empty. You need at least one data disk.";
       }
       {
-        assertion = all (name: hasPrefix "d" name && match "d[0-9]+" name != null) (
-          attrNames cfg.dataDisks
-        );
-        message = "All data disk names must be in format 'd0', 'd1', etc. Invalid names: ${
-          toString (
-            filter (name: !(hasPrefix "d" name && match "d[0-9]+" name != null)) (attrNames cfg.dataDisks)
-          )
-        }";
-      }
-      {
         assertion = length cfg.parityFiles <= 6;
         message = "SnapRAID supports maximum 6 parity files. You have ${toString (length cfg.parityFiles)}.";
       }

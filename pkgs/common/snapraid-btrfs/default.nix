@@ -23,11 +23,12 @@ let
   script =
     (writeScriptBin name (
       builtins.readFile (
+        # Using D34DC3N73R fork for snapper 0.11.0+ support
         (fetchFromGitHub {
-          owner = "automorphism88";
+          owner = "D34DC3N73R";
           repo = "snapraid-btrfs";
-          rev = "8cdbf54100c2b630ee9fcea11b14f58a894b4bf3";
-          sha256 = "IQgL55SMwViOnl3R8rQ9oGsanpFOy4esENKTwl8qsgo=";
+          rev = "a43e9a40773772b881b1450edfef28c9937f5f27";
+          sha256 = "sha256-zOFc1/H2hgcZMeGUnLvuWL+SFvE5kvekm0F/dvhakWI=";
         })
         + "/snapraid-btrfs"
       )
