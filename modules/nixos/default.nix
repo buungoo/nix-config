@@ -15,5 +15,6 @@
     ./jellyseerr.nix
     ./samba-client.nix
     ./netbird.nix
+    ./cross-seed.nix
   ];
 }

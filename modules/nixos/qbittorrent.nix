@@ -96,6 +96,12 @@ in
       description = "Host path for persistent qBittorrent application data";
     };
 
+    backupPath = lib.mkOption {
+      type = lib.types.str;
+      default = "/mnt/storage/qbittorrent/BT_backup";
+      description = "Host path for qBittorrent BT_backup directory (active .torrent files)";
+    };
+
     torrentPath = lib.mkOption {
       type = lib.types.str;
       default = "/mnt/storage/arr/torrents";
@@ -196,7 +202,13 @@ in
 
         # Setup bindmount directories
         systemd.tmpfiles.rules = [
-          "d ${cfg.dataDir} 0755 ${uid} ${gid} -"
+          "d ${cfg.dataDir} 0700 ${uid} ${gid} -"
+          "d ${cfg.backupPath} 0700 ${uid} ${gid} -"
+
+          # Recursively fix ownership/permissions during migration
+          "Z ${cfg.dataDir} 0700 ${uid} ${gid} -"
+          "Z ${cfg.backupPath} 0700 ${uid} ${gid} -"
+
           "d ${cfg.torrentPath} 2775 ${uid} ${toString mediaGid} -"
           "d ${cfg.torrentPath}/books 2775 ${uid} ${toString mediaGid} -"
           "d ${cfg.torrentPath}/incomplete 2775 ${uid} ${toString mediaGid} -"
@@ -234,6 +246,10 @@ in
             {
               "/var/lib/qbittorrent" = {
                 hostPath = cfg.dataDir;
+                isReadOnly = false;
+              };
+              "/var/lib/qbittorrent/qBittorrent/data/BT_backup" = {
+                hostPath = cfg.backupPath;
                 isReadOnly = false;
               };
               "/arr/torrents" = {

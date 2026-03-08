@@ -202,7 +202,7 @@ rec {
     dataDisks:
     {
       minfreespace ? "20G", # Reserve space per disk
-      createPolicy ? "mfs", # Most free space
+      createPolicy ? "epmfs", # Existing path most free space, crucial for arr hardlinks
       cacheFiles ? "off", # Disable file caching for NAS reliability
     }:
     {

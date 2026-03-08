@@ -157,6 +157,8 @@ in
               isReadOnly = false;
             };
             "/arr" = {
+              # Have to mount root directory for hardlinks to work it is not
+              # valid to only mount "arr/torrents" and "arr/media"
               hostPath = cfg.rootPath;
               isReadOnly = false;
             };

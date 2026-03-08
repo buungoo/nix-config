@@ -78,6 +78,7 @@
   custom.services.prowlarr.enable = true;
   custom.services.radarr.enable = true;
   custom.services.jellyseerr.enable = true;
+  custom.services.cross-seed.enable = true;
   custom.services.netbird = {
     enable = true;
     dashboard.enable = true;

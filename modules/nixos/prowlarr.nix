@@ -102,8 +102,8 @@ in
         sops.secrets."prowlarr/api-key" = {
           sopsFile = "${sopsFolder}/${config.hostSpec.hostName}.yaml";
           owner = "prowlarr";
-          group = "prowlarr";
-          mode = "0400";
+          group = "media";
+          mode = "0440";
         };
         sops.secrets."prowlarr/password" = {
           sopsFile = "${sopsFolder}/${config.hostSpec.hostName}.yaml";
