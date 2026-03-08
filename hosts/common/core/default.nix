@@ -62,11 +62,13 @@ in
 
   # ========== Overlays ==========
   nixpkgs = {
-    overlays = lib.optionals isDarwin [
-      (import ../pkgs/darwin { inherit pkgs; })
-    ] ++ [
-      outputs.overlays.default
-    ];
+    overlays =
+      lib.optionals isDarwin [
+        (final: _prev: (import (lib.custom.relativeToRoot "pkgs/darwin") { pkgs = final; }))
+      ]
+      ++ [
+        outputs.overlays.default
+      ];
     config = {
       allowUnfree = true;
     };
