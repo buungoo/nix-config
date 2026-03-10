@@ -52,7 +52,7 @@ in
   custom.reverseProxy.virtualHosts.auth = {
     domain = "auth.${config.hostSpec.domain}";
     backendHost = "10.0.2.2";
-    backendPort = 8443;
+    backendPort = 443;
     backendSSL = true;
   };
 
@@ -95,10 +95,6 @@ in
 
       forwardPorts = [
         {
-          hostPort = 8443;
-          containerPort = 8443;
-        }
-        {
           hostPort = 3636;
           containerPort = 3636;
         }
@@ -114,7 +110,7 @@ in
 
           # Open firewall for Kanidm
           networking.firewall.allowedTCPPorts = [
-            8443
+            443
             3636
           ];
 
@@ -123,7 +119,7 @@ in
 
             client.enable = true;
             client.settings = {
-              uri = "https://${authDomain}:8443"; # Inside container, connect directly to Kanidm
+              uri = "https://${authDomain}"; # Inside container, connect directly to Kanidm
               verify_ca = true;
               verify_hostnames = true;
               ca_path = "/etc/ssl/certs/kanidm/fullchain.pem";
@@ -139,11 +135,11 @@ in
               tls_chain = "/etc/ssl/certs/kanidm/fullchain.pem";
               tls_key = "/etc/ssl/certs/kanidm/key.pem";
 
-              bindaddress = "0.0.0.0:8443";
+              bindaddress = "0.0.0.0:443";
               ldapbindaddress = "0.0.0.0:3636";
 
-              # Trust the proxy headers from the host
-              http_client_address_info.x-forward-for = [ "${net.gatewayIP}" ];
+              # Trust the proxy headers from the host (all bridge gateways)
+              http_client_address_info.x-forward-for = [ "10.0.0.1" "10.0.1.1" "10.0.2.1" "10.0.9.1" ];
 
               # auth_failure_ttl = 300;
               # auth_failure_count = 3;
@@ -259,6 +255,10 @@ in
   systemd = lib.mkMerge [
     (lib.custom.mkContainerSystemd "kanidm" { })
     {
+      tmpfiles.rules = [
+        "d /var/lib/kanidm 0700 kanidm kanidm -"
+      ];
+
       # Systemd hardening for kanidm container
       services."container@kanidm".serviceConfig = {
         ProtectSystem = "full";

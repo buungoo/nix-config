@@ -158,7 +158,7 @@ in
 
                 settings.misc = {
                   movie_directory = "/arr/media/movies";
-                  tv_directory = "/arr/media/tvshows";
+                  tv_directory = "/arr/media/tv";
                   torrent_directory = "/arr/torrents";
                   image_directory = "/var/lib/media-manager/images";
                 };

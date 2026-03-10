@@ -206,7 +206,6 @@ let
 
   # Generate forward rules from container forwardPorts
   generateForwardRules =
-    iface:
     lib.concatStrings (
       lib.mapAttrsToList (
         containerName: containerCfg:
@@ -222,19 +221,15 @@ let
           in
           lib.concatMapStrings (
             port:
-            let
-              # Special case: qbittorrent allows both external and lo
-              ifaceRule = if containerName == "qbittorrent" then ''{ "${iface}", "lo" }'' else ''"${iface}"'';
-            in
             # Special case: DNS (port 53) needs both TCP and UDP
             if port.hostPort == 53 then
               ''
-                iifname ${ifaceRule} oifname "${bridge}" ip daddr ${containerIP} tcp dport ${toString port.containerPort} counter accept
-                iifname ${ifaceRule} oifname "${bridge}" ip daddr ${containerIP} udp dport ${toString port.containerPort} counter accept
+                oifname "${bridge}" ip daddr ${containerIP} tcp dport ${toString port.containerPort} counter accept
+                oifname "${bridge}" ip daddr ${containerIP} udp dport ${toString port.containerPort} counter accept
               ''
             else
               ''
-                iifname ${ifaceRule} oifname "${bridge}" ip daddr ${containerIP} tcp dport ${toString port.containerPort} counter accept
+                oifname "${bridge}" ip daddr ${containerIP} tcp dport ${toString port.containerPort} counter accept
               ''
           ) containerCfg.forwardPorts
       ) config.containers
@@ -282,6 +277,7 @@ in
                 UseDNS = false;
                 UseDomains = false;
                 RouteMetric = 100 + idx; # Primary has lower metric
+                ClientIdentifier = config.hostSpec.networking.ClientIdentifier or "duid";
               };
               linkConfig.RequiredForOnline = if idx == 0 then "routable" else "no";
             };
@@ -372,7 +368,7 @@ in
             oifname "wg0" accept
 
             # Container port forwarding - auto-generated from forwardPorts
-            ${lib.concatMapStrings (iface: generateForwardRules iface) (externalIfaces ++ [ "wg0" ])}
+            ${generateForwardRules}
           }
         }
       '';

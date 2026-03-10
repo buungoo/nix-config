@@ -50,7 +50,7 @@ in
 
   systemd.tmpfiles.rules = [
     "d /var/lib/sonarr 0755 ${toString uid} ${toString gid} -"
-    "d /mnt/storage/arr/media/tvshows 0775 ${toString uid} ${toString mediaGid} -"
+    "d /mnt/storage/arr/media/tv 0775 ${toString uid} ${toString mediaGid} -"
   ];
 
   containers.sonarr =
@@ -116,7 +116,7 @@ in
 
           systemd.tmpfiles.rules = [
             "d /var/lib/sonarr 0755 ${toString uid} ${toString gid} -"
-            "d /arr/media/tvshows 0775 ${toString uid} ${toString mediaGid} -"
+            "d /arr/media/tv 0775 ${toString uid} ${toString mediaGid} -"
           ];
         }
       ];

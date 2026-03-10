@@ -49,8 +49,8 @@ in
           hostPath = "/mnt/storage/arr/media/movies";
           isReadOnly = true;
         };
-        "/media/tvshows" = {
-          hostPath = "/mnt/storage/arr/media/tvshows";
+        "/media/tv" = {
+          hostPath = "/mnt/storage/arr/media/tv";
           isReadOnly = true;
         };
       };

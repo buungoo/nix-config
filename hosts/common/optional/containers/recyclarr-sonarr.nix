@@ -33,8 +33,8 @@
           hostPath = "/mnt/storage/downloads";
           isReadOnly = false;
         };
-        "/media/tvshows" = {
-          hostPath = "/mnt/storage/media/tvshows";
+        "/media/tv" = {
+          hostPath = "/mnt/storage/media/tv";
           isReadOnly = false;
         };
         # Mount secrets into container
@@ -167,7 +167,7 @@
             "d /var/lib/sonarr 0755 sonarr sonarr -"
             "d /var/lib/sonarr/recyclarr 0755 sonarr sonarr -"
             "d /downloads 0755 sonarr sonarr -"
-            "d /media/tvshows 0755 sonarr sonarr -"
+            "d /media/tv 0755 sonarr sonarr -"
           ];
         }
       ];

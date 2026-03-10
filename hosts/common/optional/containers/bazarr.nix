@@ -107,7 +107,7 @@ in
           systemd.tmpfiles.rules = [
             "d /var/lib/bazarr 0755 ${toString uid} ${toString gid} -"
             "d /media/movies 0775 ${toString uid} ${toString mediaGid} -"
-            "d /media/tvshows 0775 ${toString uid} ${toString mediaGid} -"
+            "d /media/tv 0775 ${toString uid} ${toString mediaGid} -"
           ];
         }
       ];

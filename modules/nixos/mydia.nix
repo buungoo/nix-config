@@ -80,7 +80,7 @@ in
       type = lib.types.listOf lib.types.str;
       default = [
         "/arr/media/movies"
-        "/arr/media/tvshows"
+        "/arr/media/tv"
       ];
       description = "Media library paths inside the container that Mydia needs read access to";
     };

@@ -121,6 +121,8 @@ let
       timeout server 3600s
     ''}
           # Set headers
+          http-request set-header Host ${cfg.domain}
+          http-request set-header X-Forwarded-Host ${cfg.domain}
           http-request set-header X-Forwarded-Proto https
           http-request set-header X-Forwarded-For %[src]
           http-request add-header X-SSL-Client-Verify %[ssl_c_verify]
@@ -153,6 +155,8 @@ ${lib.optionalString (cfg.oidcDiscovery != null) ''
       timeout client 3600s
       timeout server 3600s
     ''}
+          http-request set-header Host ${cfg.domain}
+          http-request set-header X-Forwarded-Host ${cfg.domain}
           http-request set-header X-Forwarded-Proto https
           http-request set-header X-Forwarded-For %[src]
 ${lib.optionalString (cfg.oidcDiscovery != null) ''
@@ -249,7 +253,8 @@ in
         option tcplog
 
         # Define LAN network and WireGuard VPN (IPv4 and IPv6)
-        acl is_lan src ${config.hostSpec.networking.localSubnet} ${config.hostSpec.networking.wireguardIPv4Subnet} ${config.hostSpec.networking.localIPv6Subnet} ${config.hostSpec.networking.wireguardIPv6Subnet} 100.64.0.0/10 ${containerSubnets}
+        # Includes standard RFC1918, ULA (fd00::/8), and Link-Local (fe80::/10)
+        acl is_lan src ${config.hostSpec.networking.localSubnet} ${config.hostSpec.networking.wireguardIPv4Subnet} ${config.hostSpec.networking.localIPv6Subnet} ${config.hostSpec.networking.wireguardIPv6Subnet} 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 100.64.0.0/10 fc00::/7 fe80::/10 2a00::/12 ${containerSubnets}
 
         # Inspect SNI to determine routing
         tcp-request inspect-delay 5s
@@ -347,9 +352,11 @@ in
       haproxy = {
         after = [
           "haproxy-cert-combine.service"
+          "step-ca-fix-cert-permissions.service"
         ];
         wants = [
           "haproxy-cert-combine.service"
+          "step-ca-fix-cert-permissions.service"
         ];
       };
 

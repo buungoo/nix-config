@@ -186,6 +186,17 @@
             };
           };
 
+          # Run PostgreSQL as the immich user so it has access to the bind-mounted data directory
+          systemd.services.postgresql.serviceConfig = {
+            User = lib.mkForce "immich";
+            Group = lib.mkForce "immich";
+          };
+
+          # Ensure runtime directory for postgres is owned by immich
+          systemd.tmpfiles.rules = [
+            "d /run/postgresql 0755 immich immich -"
+          ];
+
           # Create .immich marker files that Immich requires for mount verification
           # See https://docs.immich.app/administration/system-integrity#folder-checks
           systemd.services.immich-init-markers = {

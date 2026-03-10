@@ -95,11 +95,11 @@
         };
         # Media directories
         "/media/movies" = {
-          hostPath = "/mnt/storage/media/movies";
+          hostPath = "/mnt/storage/arr/media/movies";
           isReadOnly = true;
         };
-        "/media/tvshows" = {
-          hostPath = "/mnt/storage/media/tvshows";
+        "/media/tv" = {
+          hostPath = "/mnt/storage/arr/media/tv";
           isReadOnly = true;
         };
         # Pass the render device to the container

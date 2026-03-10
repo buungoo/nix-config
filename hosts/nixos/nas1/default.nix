@@ -27,6 +27,7 @@
         "enp3s0"
         "enp4s0"
       ];
+      ClientIdentifier = "mac";
       localIP = inputs.nix-secrets.nas1.networking.localIP;
       localSubnet = inputs.nix-secrets.nas1.networking.localSubnet;
       localIPv6Subnet = inputs.nix-secrets.nas1.networking.localIPv6Subnet;
@@ -39,6 +40,9 @@
   custom.services.qbittorrent.vpn.enable = false;
   custom.services.qbittorrent.vpnFile = inputs.nix-secrets + "/nix/nas1/qbit.nix";
   custom.services.prowlarr.indexerFile = inputs.nix-secrets + "/nix/nas1/prowlarr-indexers.nix";
+
+  custom.services.netbird.enable = lib.mkForce false;
+  custom.services.netbird-client.enable = lib.mkForce false;
 
   custom.services.cross-seed = {
     enable = true;

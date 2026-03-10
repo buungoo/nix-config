@@ -477,14 +477,14 @@
       # Ensure the container starts after HAProxy so step-ca can reach
       # the OIDC provider (auth.bungos.xyz) through HAProxy at boot time
       services."container@step-ca" = {
-        after = [ "haproxy.service" ];
-        wants = [ "haproxy.service" ];
+        # after = [ "haproxy.service" ];
+        # wants = [ "haproxy.service" ];
       };
 
       # Also ensure certificate files are group-readable after step-ca creates them
       services.step-ca-fix-cert-permissions = {
         description = "Fix step-ca certificate permissions for nginx mTLS";
-        after = [ "container@step-ca.service" ];
+        after = [ "step-ca-init.service" ];
         wantedBy = [ "multi-user.target" ];
         serviceConfig = {
           Type = "oneshot";
@@ -505,10 +505,16 @@
 
             # Set group-readable permissions on certificate files
             if [[ -f /mnt/storage/step-ca/.step/certs/root_ca.crt ]]; then
+              chgrp ${caProxyGid} /mnt/storage/step-ca/.step
+              chmod 750 /mnt/storage/step-ca/.step
+
               chmod 640 /mnt/storage/step-ca/.step/certs/root_ca.crt
               chmod 640 /mnt/storage/step-ca/.step/certs/intermediate_ca.crt
               chgrp ${caProxyGid} /mnt/storage/step-ca/.step/certs/root_ca.crt
               chgrp ${caProxyGid} /mnt/storage/step-ca/.step/certs/intermediate_ca.crt
+
+              chgrp ${caProxyGid} /mnt/storage/step-ca/.step/certs
+              chmod 750 /mnt/storage/step-ca/.step/certs
 
               # Create CA bundle with root + intermediate for nginx verification
               cat /mnt/storage/step-ca/.step/certs/intermediate_ca.crt \
