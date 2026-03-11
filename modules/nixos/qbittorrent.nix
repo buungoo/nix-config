@@ -12,21 +12,22 @@
 # ────────────────────────────────────────
 # File: sonarr.nix
 # What: /arr/media/tv
-# Permissions: 0755
+# Permissions: 2775
 # Owner: sonarr:media
-# Why: Sonarr owns dir (can add/delete/rename); group read-only
+# Why: Probably not needed but 0755 could cause problems
 # ────────────────────────────────────────
 # File: radarr.nix
 # What: /arr/media/movies
-# Permissions: 0755
+# Permissions: 2775
 # Owner: radarr:media
-# Why: Radarr owns dir; group read-only
+# Why: Probably not needed but 0755 could cause problems
 # ────────────────────────────────────────
 # File: sonarr/radarr
-# What: SetPermissionsLinux
-# Permissions: false
+# What: Files in /arr/media/tv and /arr/media/movies
+# Permissions: —
 # Owner: —
-# Why: Don't touch file permissions; qbittorrent's 0664 is source of truth
+# Why: Files should remain owned by qbittorrent when they are hardlinked
+# 0664 due to qbittorrent.nix config
 # ────────────────────────────────────────
 # File: jellyfin.nix
 # What: No media dirs
@@ -211,16 +212,13 @@ in
           "d ${cfg.dataDir} 0700 ${uid} ${gid} -"
           "d ${cfg.backupPath} 0700 ${uid} ${gid} -"
 
-          # Recursively fix ownership/permissions during migration
-          "Z ${cfg.dataDir} 0700 ${uid} ${gid} -"
-          "Z ${cfg.backupPath} 0700 ${uid} ${gid} -"
-
           "d ${cfg.torrentPath} 2775 ${uid} ${toString mediaGid} -"
           "d ${cfg.torrentPath}/books 2775 ${uid} ${toString mediaGid} -"
           "d ${cfg.torrentPath}/incomplete 2775 ${uid} ${toString mediaGid} -"
           "d ${cfg.torrentPath}/movies 2775 ${uid} ${toString mediaGid} -"
           "d ${cfg.torrentPath}/music 2775 ${uid} ${toString mediaGid} -"
           "d ${cfg.torrentPath}/tv 2775 ${uid} ${toString mediaGid} -"
+          "d ${cfg.torrentPath}/cross-seed 2775 ${uid} ${toString mediaGid} -"
         ];
 
         # Fetch secrets
@@ -296,12 +294,14 @@ in
               net
               // {
                 inherit (config.hostSpec) stateVersion;
-                dns = lib.optional cfg.vpn.enable (
-                  let
-                    qbitSecrets = if cfg.vpnFile != null then (import cfg.vpnFile) { inherit config; } else null;
-                  in
-                  if qbitSecrets != null then qbitSecrets.wg.dns else "1.1.1.1"
-                ) ++ [ "1.1.1.1" ];
+                dns =
+                  lib.optional cfg.vpn.enable (
+                    let
+                      qbitSecrets = if cfg.vpnFile != null then (import cfg.vpnFile) { inherit config; } else null;
+                    in
+                    if qbitSecrets != null then qbitSecrets.wg.dns else "1.1.1.1"
+                  )
+                  ++ [ "1.1.1.1" ];
               }
             ))
             {
@@ -320,19 +320,22 @@ in
                 let
                   qbitSecrets = if cfg.vpnFile != null then (import cfg.vpnFile) { inherit config; } else null;
                 in
-                if qbitSecrets == null then { } else {
-                  privateKeyFile = qbitSecrets.wg.private_key_path;
-                  address = [ qbitSecrets.wg.address ];
-                  autostart = true;
-                  peers = [
-                    {
-                      publicKey = qbitSecrets.wg.public_key;
-                      endpoint = qbitSecrets.wg.endpoint;
-                      allowedIPs = qbitSecrets.wg.allowed_ips;
-                      persistentKeepalive = qbitSecrets.wg.persistent_keepalive;
-                    }
-                  ];
-                }
+                if qbitSecrets == null then
+                  { }
+                else
+                  {
+                    privateKeyFile = qbitSecrets.wg.private_key_path;
+                    address = [ qbitSecrets.wg.address ];
+                    autostart = true;
+                    peers = [
+                      {
+                        publicKey = qbitSecrets.wg.public_key;
+                        endpoint = qbitSecrets.wg.endpoint;
+                        allowedIPs = qbitSecrets.wg.allowed_ips;
+                        persistentKeepalive = qbitSecrets.wg.persistent_keepalive;
+                      }
+                    ];
+                  }
               );
 
               # qBittorrent service

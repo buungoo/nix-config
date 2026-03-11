@@ -124,7 +124,7 @@ in
         # Setup bindmount directories
         systemd.tmpfiles.rules = [
           "d ${cfg.dataDir} 0755 ${uid} ${gid} -"
-          "d ${cfg.rootPath}/media/tv 0755 ${uid} ${toString mediaGid} -"
+          "d ${cfg.rootPath}/media/tv 2775 ${uid} ${toString mediaGid} -"
         ];
 
         # Fetch secrets

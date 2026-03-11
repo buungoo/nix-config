@@ -112,14 +112,6 @@ in
         };
         users.groups.cross-seed.gid = cfg.gid;
 
-        # # Register reverse proxy
-        # custom.reverseProxy.virtualHosts.cross-seed = {
-        #   domain = cfg.domain;
-        #   backendHost = net.containerIP;
-        #   backendPort = cfg.port;
-        #   backendSSL = false;
-        # };
-
         # Register container network
         hostSpec.networking.containerNetworks.${cfg.network} = {
           bridge = lib.mkDefault "${cfg.network}-bridge";
@@ -131,9 +123,6 @@ in
         # Setup bindmount directories
         systemd.tmpfiles.rules = [
           "d ${cfg.dataDir} 0755 ${uid} ${gid} -"
-          "d ${cfg.torrentPath}/torrents/cross-seed 2775 ${uid} ${toString mediaGid} -"
-          # Recursively fix ownership/permissions
-          "Z ${cfg.torrentPath}/torrents/cross-seed 2775 ${uid} ${toString mediaGid} -"
         ];
 
         # Fetch secrets
@@ -148,9 +137,11 @@ in
         sops.templates."cross-seed-secrets" = {
           content = builtins.toJSON {
             apiKey = config.sops.placeholder."cross-seed/api-key";
-            qbittorrentUrl = "http://bungo:${
-              config.sops.placeholder."qbit/plaintext_password"
-            }@${qbitNet.containerIP}:${toString config.custom.services.qbittorrent.port}";
+            torrentClients = [
+              "qbittorrent:http://bungo:${
+                config.sops.placeholder."qbit/plaintext_password"
+              }@${qbitNet.containerIP}:${toString config.custom.services.qbittorrent.port}"
+            ];
             torznab = cfg.torznab;
             sonarr = cfg.sonarr;
             radarr = cfg.radarr;
@@ -204,6 +195,11 @@ in
           config = lib.mkMerge [
             (lib.custom.mkContainerBaseConfig (net // { inherit (config.hostSpec) stateVersion; }))
             {
+              environment.variables = {
+                CONFIG_DIR = "/var/lib/cross-seed";
+                CREDENTIALS_DIRECTORY = "/run/credentials/cross-seed.service";
+              };
+
               services.cross-seed = {
                 enable = true;
                 settingsFile = "/run/secrets/cross-seed-secrets.json";
@@ -220,6 +216,17 @@ in
                   ignoreNonRelevantFilesToResume = false; # default
                   action = "inject";
                   skipRecheck = true;
+                  duplicateCategories = true;
+                  outputDir = null;
+
+                  dataDirs = [
+                    "/arr/torrents/movies"
+                    "/arr/torrents/tv"
+                  ];
+
+                  # Add these lines to enable search
+                  searchCadence = "1 day"; # how often automatic search runs
+                  searchLimit = 400; # max results per run
                 } cfg.extraSettings;
               };
 

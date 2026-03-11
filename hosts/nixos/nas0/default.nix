@@ -24,7 +24,6 @@
     # Networking configuration
     networking = {
       externalInterfaces = [
-        "enp3s0"
         "enp4s0"
       ];
       localIP = inputs.nix-secrets.nas0.networking.localIP;
