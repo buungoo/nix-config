@@ -31,6 +31,7 @@ in
       "home/bungo/common/optional/steam.nix"
       "home/bungo/common/optional/whisky.nix"
       "home/bungo/common/optional/altserver.nix"
+      "home/bungo/common/optional/zoom.nix"
     ])
   ];
 

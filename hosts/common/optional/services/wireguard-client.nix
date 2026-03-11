@@ -55,6 +55,32 @@ in
     ];
   };
 
+  networking.wg-quick.interfaces.wg1 = {
+    # Client IP in the VPN subnet
+    address = [ "10.100.0.4/24" ];
+
+    privateKeyFile = config.sops.secrets."wireguard/private_key".path;
+
+    peers = [
+      {
+        # nas1 server
+        publicKey = inputs.nix-secrets.nas1.wireguard.publicKey;
+
+        # Allow traffic to nas1's WireGuard IP and local network
+        allowedIPs = [
+          "${inputs.nix-secrets.nas1.networking.wireguardIP}/32" # nas1 WireGuard IP
+          "${inputs.nix-secrets.nas1.networking.localSubnet}" # nas1 local network
+        ];
+
+        # Endpoint: nas1's domain
+        endpoint = "${inputs.nix-secrets.nas1.domain}:51820";
+
+        # Keep connection alive
+        persistentKeepalive = 25;
+      }
+    ];
+  };
+
   # NOTE: Remove this after server migration
   boot.kernel.sysctl."net.ipv4.ip_forward" = 1;
   networking.firewall.allowedTCPPorts = [ 8096 ];
@@ -110,7 +136,34 @@ in
     ];
   };
 
+  networking.wg-quick.interfaces.wg1 = {
+    # Client IP in the VPN subnet
+    address = [ "10.100.0.3/24" ];
+
+    privateKeyFile = config.sops.secrets."wireguard/private_key".path;
+
+    peers = [
+      {
+        # nas1 server
+        publicKey = inputs.nix-secrets.nas1.wireguard.publicKey;
+
+        # Allow traffic to nas1's WireGuard IP and local network
+        allowedIPs = [
+          "${inputs.nix-secrets.nas1.networking.wireguardIP}/32" # nas1 WireGuard IP
+          "${inputs.nix-secrets.nas1.networking.localSubnet}" # nas1 local network
+        ];
+
+        # Endpoint: nas1's domain
+        endpoint = "${inputs.nix-secrets.nas1.domain}:51820";
+
+        # Keep connection alive
+        persistentKeepalive = 25;
+      }
+    ];
+  };
+
   # Override the launchd daemon to disable KeepAlive (macOS only)
   # This allows wg-quick down to actually stop the interface
   launchd.daemons.wg-quick-wg0.serviceConfig.KeepAlive = lib.mkForce false;
+  launchd.daemons.wg-quick-wg1.serviceConfig.KeepAlive = lib.mkForce false;
 }
