@@ -20,7 +20,7 @@
   ...
 }:
 let
-  enableShellAccess = true;
+  enableShellAccess = false;
   authDomain = config.custom.reverseProxy.virtualHosts.auth.domain;
 in
 {
@@ -52,7 +52,7 @@ in
   custom.reverseProxy.virtualHosts.auth = {
     domain = "auth.${config.hostSpec.domain}";
     backendHost = "10.0.2.2";
-    backendPort = 8443;
+    backendPort = 443;
     backendSSL = true;
   };
 
@@ -95,10 +95,6 @@ in
 
       forwardPorts = [
         {
-          hostPort = 8443;
-          containerPort = 8443;
-        }
-        {
           hostPort = 3636;
           containerPort = 3636;
         }
@@ -114,16 +110,16 @@ in
 
           # Open firewall for Kanidm
           networking.firewall.allowedTCPPorts = [
-            8443
+            443
             3636
           ];
 
           services.kanidm = {
-            package = pkgs.kanidm_1_8.withSecretProvisioning;
+            package = pkgs.kanidm_1_10.withSecretProvisioning;
 
             client.enable = true;
             client.settings = {
-              uri = "https://${authDomain}:8443"; # Inside container, connect directly to Kanidm
+              uri = "https://${authDomain}"; # Inside container, connect directly to Kanidm
               verify_ca = true;
               verify_hostnames = true;
               ca_path = "/etc/ssl/certs/kanidm/fullchain.pem";
@@ -139,11 +135,11 @@ in
               tls_chain = "/etc/ssl/certs/kanidm/fullchain.pem";
               tls_key = "/etc/ssl/certs/kanidm/key.pem";
 
-              bindaddress = "0.0.0.0:8443";
+              bindaddress = "0.0.0.0:443";
               ldapbindaddress = "0.0.0.0:3636";
 
-              # Trust the proxy headers from the host
-              http_client_address_info.x-forward-for = [ "${net.gatewayIP}" ];
+              # Trust the proxy headers from the host (all bridge gateways)
+              http_client_address_info.x-forward-for = [ "10.0.0.1" "10.0.1.1" "10.0.2.1" "10.0.9.1" ];
 
               # auth_failure_ttl = 300;
               # auth_failure_count = 3;
@@ -173,11 +169,13 @@ in
                   originLanding
                   enableLegacyCrypto
                   preferShortUsername
+                  allowInsecureClientDisablePkce
                   ;
                 inherit (client) public;
                 enableLocalhostRedirects = client.public;
                 basicSecretFile = if client.public then null else client.secretFile;
                 scopeMaps = client.scopeMap;
+                claimMaps = client.claimMap;
               }) hostConfig.custom.kanidm.oauthClients;
             };
           };
@@ -185,7 +183,7 @@ in
           # Minimal container attempt
           environment.defaultPackages = lib.mkForce [ ];
           environment.systemPackages = lib.mkForce (
-            [ pkgs.kanidm_1_8 ] # Always include kanidm
+            [ pkgs.kanidm_1_9 ] # Always include kanidm
             ++ lib.optionals enableShellAccess [
               pkgs.bash
               pkgs.coreutils
@@ -230,8 +228,8 @@ in
           # Create necessary directories and fix certificate ownership
           systemd.tmpfiles.rules = [
             "d ${builtins.dirOf kanidmData} 0755 root root -"
-            "d ${kanidmData} 0755 kanidm kanidm -"
-            "d ${kanidmData}/.cache 0755 kanidm kanidm -"
+            "d ${kanidmData} 0750 kanidm kanidm -"
+            "d ${kanidmData}/.cache 0750 kanidm kanidm -"
             "d /etc/ssl/certs/kanidm 0755 root root -"
             "d /etc/ssl/certs/kanidm 0755 root root -"
           ];

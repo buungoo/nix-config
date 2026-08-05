@@ -210,8 +210,8 @@ in
 
         # Setup bindmount directories
         systemd.tmpfiles.rules = [
-          "d /var/lib/jellyfin 0755 ${uid} ${gid} -"
-          "d ${cfg.backupPath} 0755 ${uid} ${gid} -"
+          "d /var/lib/jellyfin 0700 ${uid} ${gid} -"
+          "d ${cfg.backupPath} 0750 ${uid} ${gid} -"
         ];
 
         # Fetch secrets
@@ -321,8 +321,31 @@ in
             {
               imports = [ jellarrModule ];
 
+              # jellarr's package.nix pins fetchPnpmDeps { fetcherVersion = 3; },
+              # which our default pnpm_11 refuses. The module builds jellarr with
+              # this container's pkgs and exposes no package override, so pin pnpm
+              # to the v10 series (whose fetcher still accepts v3) here.
+              # fetchPnpmDeps defaults its `pnpm` arg to pnpm_11 and package.nix
+              # doesn't override it, so inject pnpm_10 — and the resulting deps
+              # hash differs from the one baked into package.nix, so force it too.
+              nixpkgs.overlays = [
+                (_final: prev: {
+                  pnpm = prev.pnpm_10;
+                  fetchPnpmDeps =
+                    args:
+                    prev.fetchPnpmDeps (
+                      args
+                      // {
+                        pnpm = prev.pnpm_10;
+                        hash = "sha256-DA4PFpH+CZRHtreOlRHz0S3/93LdqlHVvsUyw9WAwII=";
+                      }
+                    );
+                })
+              ];
+
               # Intro Skipper plugin needs ffmpeg on the jellyfin service's PATH
               systemd.services.jellyfin.path = [ pkgs.jellyfin-ffmpeg ];
+              environment.systemPackages = [ pkgs.jellyfin-ffmpeg ];
 
               # GPU drivers inside container
               # This may not be needed ?
@@ -347,7 +370,7 @@ in
                 transcoding = lib.mkIf cfg.gpu.enable {
                   enableHardwareEncoding = true;
                   enableToneMapping = true;
-                  enableIntelLowPowerEncoding = true;
+                  enableIntelLowPowerEncoding = false;
                   hardwareDecodingCodecs = {
                     h264 = true;
                     hevc = true;
@@ -360,6 +383,8 @@ in
                   hardwareEncodingCodecs = {
                     hevc = true;
                   };
+                  throttleTranscoding = true;
+                  deleteSegments = true;
                 };
               };
 
@@ -393,8 +418,15 @@ in
 
                   # NOTE: This is not idempotent
                   branding = {
-                    # customCss = "@import url(\"https://cdn.jsdelivr.net/gh/lscambo13/ElegantFin@main/Theme/ElegantFin-jellyfin-theme-build-latest-minified.css\");";
                     customCss = "";
+                    # customCss = ''
+                    #   @import url("https://cdn.jsdelivr.net/gh/lscambo13/ElegantFin@main/Theme/ElegantFin-jellyfin-theme-build-latest-minified.css");
+                    #   @import url("https://cdn.jsdelivr.net/gh/lscambo13/ElegantFin@main/Theme/assets/add-ons/custom-media-covers-latest-min.css");
+                    #   @import url("https://cdn.jsdelivr.net/gh/lscambo13/ElegantFin@main/Theme/assets/add-ons/media-bar-plugin-support-latest-min.css");
+                    #
+                    #   :root{ --extraCardButtonsVisibility: block; }
+                    #   :root{ --overlayPlayButtonPosition: 50%; }
+                    # '';
                   };
 
                   # NOTE: This is not idempotent
@@ -440,6 +472,21 @@ in
                         enabled = true;
                         url = "https://www.iamparadox.dev/jellyfin/plugins/manifest.json";
                       }
+                      # {
+                      #   name = "Jellyfin Enhanced";
+                      #   enabled = false;
+                      #   url = "https://raw.githubusercontent.com/n00bcodr/jellyfin-plugins/main/10.11/manifest.json";
+                      # }
+                      # {
+                      #   name = "Editor's Choice";
+                      #   enabled = false;
+                      #   url = "https://github.com/lachlandcp/jellyfin-editors-choice-plugin/raw/main/manifest.json";
+                      # }
+                      # {
+                      #   name = "IAmParadox27";
+                      #   enabled = false;
+                      #   url = "https://www.iamparadox.dev/jellyfin/plugins/manifest.json";
+                      # }
                     ];
                   };
 
@@ -466,6 +513,18 @@ in
                       name = "File Transformation";
                       configuration = { };
                     }
+                    # {
+                    #   name = "Jellyfin Enhanced";
+                    #   configuration = { };
+                    # }
+                    # {
+                    #   name = "Editor's Choice";
+                    #   configuration = { };
+                    # }
+                    # {
+                    #   name = "Media Bar";
+                    #   configuration = { };
+                    # }
                   ];
 
                   startup = {
@@ -483,7 +542,7 @@ in
               users.groups = {
                 jellyfin.gid = cfg.gid;
               }
-              // lib.genAttrs cfg.extraGroups (group: {
+              // lib.genAttrs extraGroups (group: {
                 gid = hostConfig.users.groups.${group}.gid;
               });
             }

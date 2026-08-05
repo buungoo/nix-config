@@ -13,7 +13,7 @@ in
   imports = lib.flatten [
     ./${platform}.nix # Platform-specific config
     ./ssh.nix
-    ./zoxide.nix
+    # ./zoxide.nix
     ./btop.nix
     ./zsh.nix
     ./dua.nix

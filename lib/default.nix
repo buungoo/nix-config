@@ -53,14 +53,21 @@
       gatewayIP,
       cidr,
       stateVersion,
-      dns ? [ "1.1.1.1" "8.8.8.8" ],
+      # Default to host's bridge-gateway IP so containers hit the host's
+      # unbound (split-horizon: *.<domain> resolves to LAN IP, avoiding WAN
+      # hairpin which strips src IP and trips HAProxy mTLS). Public fallback
+      # in case unbound is down.
+      dns ? [ gatewayIP "1.1.1.1" ],
       ...
     }:
     {
       system.stateVersion = stateVersion;
 
       networking.interfaces.eth0.useDHCP = false;
-      networking.defaultGateway = gatewayIP;
+      networking.defaultGateway = {
+        address = gatewayIP;
+        interface = "eth0";
+      };
 
       # Override resolv.conf directly to avoid systemd-resolved conflicts
       environment.etc."resolv.conf".text =

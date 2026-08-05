@@ -160,6 +160,16 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    dumpstarr = {
+      url = "github:Dumpstarr/Database/v1";
+      flake = false;
+    };
+
+    siglip256 = {
+      url = "git+https://huggingface.co/immich-app/ViT-L-16-SigLIP-256__webli";
+      flake = false;
+    };
+
     # mydia = {
     #   url = "github:buungoo/mydia";
     # };
@@ -205,8 +215,8 @@
     };
 
     # Neovim :)
-    nixcats = {
-      url = "github:buungoo/nixcats";
+    nix-nvim = {
+      url = "github:buungoo/nix-nvim";
     };
 
     vacuumtube = {

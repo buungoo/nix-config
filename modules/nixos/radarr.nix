@@ -190,11 +190,12 @@ in
                 enable = true;
                 user = "radarr";
                 group = "radarr";
+
+                formatDb = inputs.dumpstarr;
+
                 config = {
                   declarr = {
                     stateDir = "/var/lib/radarr";
-                    formatDbRepo = "https://github.com/Dumpstarr/Dumpstarr";
-                    formatDbBranch = "stable";
                     customFormatRecreate = true;
                     customFormatPreferRaw = true;
                     globalResolvePaths = [
@@ -283,6 +284,10 @@ in
                   };
                 };
               };
+
+              # UMask 0002 so created movie dirs are 2775 (group-writable),
+              # which lets bazarr (member of `media`) write .srt files alongside.
+              systemd.services.radarr.serviceConfig.UMask = lib.mkForce "0002";
 
               # Override declarr systemd deps
               systemd.services.declarr = {

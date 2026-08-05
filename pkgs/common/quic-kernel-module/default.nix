@@ -2,13 +2,13 @@
 
 stdenv.mkDerivation rec {
   pname = "quic-kernel-module";
-  version = "unstable-2025-12-17";
+  version = "unstable-2026-07-09";
 
   src = fetchFromGitHub {
     owner = "lxin";
     repo = "quic";
-    rev = "0b830fb6e5bfd30024c596a3016243f1704fe646";
-    hash = "sha256-IDcxTmtI6fV3zrQDCVYt9S1E+KQK3cJLEYrFsRwsEBc=";
+    rev = "0e4b1c83f2c523aa4ceed30d6625ff9159048879";
+    hash = "sha256-wUI+OnBMqwe0yYdIYPGuCW3XMUHBw5h9Nr9EPO9pbxY=";
   };
 
   nativeBuildInputs = [ autoconf automake libtool pkg-config python3 ] ++ kernel.moduleBuildDependencies;

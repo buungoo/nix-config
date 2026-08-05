@@ -175,7 +175,6 @@ let
 
   # Generate DNAT rules from container forwardPorts
   generateDNATRules =
-    iface:
     lib.concatStrings (
       lib.mapAttrsToList (
         containerName: containerCfg:
@@ -190,15 +189,20 @@ let
           in
           lib.concatMapStrings (
             port:
-            # Special case: DNS (port 53) needs both TCP and UDP
             if port.hostPort == 53 then
+              # ONLY DNAT port 53 for WireGuard (wg0). 
+              # Physical LAN interfaces MUST NOT be DNATed so Unbound on host can respond.
               ''
-                iifname "${iface}" tcp dport ${toString port.hostPort} dnat ip to ${containerIP}:${toString port.containerPort}
-                iifname "${iface}" udp dport ${toString port.hostPort} dnat ip to ${containerIP}:${toString port.containerPort}
+                iifname "wg0" tcp dport 53 dnat ip to ${containerIP}:${toString port.containerPort}
+                iifname "wg0" udp dport 53 dnat ip to ${containerIP}:${toString port.containerPort}
               ''
             else
+              # Apply DNAT for other ports to all interfaces (LAN + WG)
+              let
+                ifaceSet = "{ ${lib.concatStringsSep ", " (map (i: "\"${i}\"") (externalIfaces ++ [ "wg0" ]))} }";
+              in
               ''
-                iifname "${iface}" tcp dport ${toString port.hostPort} dnat ip to ${containerIP}:${toString port.containerPort}
+                iifname ${ifaceSet} tcp dport ${toString port.hostPort} dnat ip to ${containerIP}:${toString port.containerPort}
               ''
           ) containerCfg.forwardPorts
       ) config.containers
@@ -206,7 +210,13 @@ let
 
   # Generate forward rules from container forwardPorts
   generateForwardRules =
-    iface:
+    let
+      # Use all external interfaces + wireguard for forwarding
+      baseIfaces = externalIfaces ++ [ "wg0" ];
+      ifaceSet = "{ ${lib.concatStringsSep ", " (map (i: "\"${i}\"") baseIfaces)} }";
+      # qbittorrent also allows local loopback
+      qbitIfaceSet = "{ ${lib.concatStringsSep ", " (map (i: "\"${i}\"") (baseIfaces ++ [ "lo" ]))} }";
+    in
     lib.concatStrings (
       lib.mapAttrsToList (
         containerName: containerCfg:
@@ -223,8 +233,7 @@ let
           lib.concatMapStrings (
             port:
             let
-              # Special case: qbittorrent allows both external and lo
-              ifaceRule = if containerName == "qbittorrent" then ''{ "${iface}", "lo" }'' else ''"${iface}"'';
+              ifaceRule = if containerName == "qbittorrent" then qbitIfaceSet else ifaceSet;
             in
             # Special case: DNS (port 53) needs both TCP and UDP
             if port.hostPort == 53 then
@@ -329,7 +338,7 @@ in
             type nat hook prerouting priority dstnat; policy accept;
 
             # Container DNAT rules - auto-generated from forwardPorts
-            ${lib.concatMapStrings (iface: generateDNATRules iface) (externalIfaces ++ [ "wg0" ])}
+            ${generateDNATRules}
           }
 
           chain postrouting {
@@ -372,7 +381,7 @@ in
             oifname "wg0" accept
 
             # Container port forwarding - auto-generated from forwardPorts
-            ${lib.concatMapStrings (iface: generateForwardRules iface) (externalIfaces ++ [ "wg0" ])}
+            ${generateForwardRules}
           }
         }
       '';

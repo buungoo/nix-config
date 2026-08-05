@@ -129,8 +129,8 @@ in
         sops.secrets."cross-seed/api-key" = {
           sopsFile = "${sopsFolder}/${config.hostSpec.hostName}.yaml";
           owner = "cross-seed";
-          group = "cross-seed";
-          mode = "0400";
+          group = "media";
+          mode = "0440";
         };
 
         # Secret settings template for cross-seed
@@ -195,6 +195,9 @@ in
           config = lib.mkMerge [
             (lib.custom.mkContainerBaseConfig (net // { inherit (config.hostSpec) stateVersion; }))
             {
+              # Open firewall for the webhook API
+              networking.firewall.allowedTCPPorts = [ cfg.port ];
+
               environment.variables = {
                 CONFIG_DIR = "/var/lib/cross-seed";
                 CREDENTIALS_DIRECTORY = "/run/credentials/cross-seed.service";
@@ -219,14 +222,16 @@ in
                   duplicateCategories = true;
                   outputDir = null;
 
-                  dataDirs = [
-                    "/arr/torrents/movies"
-                    "/arr/torrents/tv"
-                  ];
+                  # Only necesssary for recovery
+                  # dataDirs = [
+                  #   "/arr/torrents/movies"
+                  #   "/arr/torrents/tv"
+                  # ];
 
-                  # Add these lines to enable search
                   searchCadence = "1 day"; # how often automatic search runs
                   searchLimit = 400; # max results per run
+                  excludeRecentSearch = "3 days";
+                  excludeOlder = "9 days";
                 } cfg.extraSettings;
               };
 

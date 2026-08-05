@@ -7,8 +7,7 @@
   pkgs,
   config,
   ...
-}:
-{
+}: {
   nixpkgs.hostPlatform = "x86_64-linux";
 
   # Use latest stable kernel (6.18.2) for SMB over QUIC support (requires >= 6.14)
@@ -32,22 +31,11 @@
       "hosts/common/optional/services/samba.nix"
       "hosts/common/optional/services/scrutiny.nix"
       "hosts/common/optional/services/glance.nix"
-      "hosts/common/optional/services/cloudflare-dyndns.nix"
       "hosts/common/optional/services/netbird-client.nix"
 
       # Containers
       "hosts/common/optional/containers/step-ca.nix"
-      # "hosts/common/optional/containers/immich.nix"
-      # TODO: problems with declarative-jellyfin
-      # "hosts/common/optional/containers/jellyfin.nix"
       "hosts/common/optional/containers/kanidm.nix"
-      # "hosts/common/optional/containers/sonarr.nix"
-      # "hosts/common/optional/containers/radarr.nix"
-      # "hosts/common/optional/containers/prowlarr.nix"
-      # "hosts/common/optional/containers/qbittorrent.nix"
-      # "hosts/common/optional/containers/jellyseer.nix"
-      "hosts/common/optional/containers/bazarr.nix"
-      # "hosts/common/optional/containers/monitoring.nix"
 
       # HAProxy
       "hosts/common/optional/services/haproxy.nix"
@@ -71,6 +59,8 @@
 
   hostSpec.isServer = true;
 
+  users.groups.media.gid = 5000;
+
   custom.services.jellyfin = {
     enable = true;
     secretsFile = "${builtins.toString inputs.nix-secrets}/sops/${config.hostSpec.hostName}.yaml";
@@ -78,10 +68,17 @@
   custom.services.immich.enable = true;
   custom.services.sonarr.enable = true;
   custom.services.qbittorrent.enable = true;
+  custom.services.qbit-manage = {
+    enable = true;
+    settings.share_limits.noHL.cleanup = true;
+  };
   custom.services.prowlarr.enable = true;
   custom.services.radarr.enable = true;
+  custom.services.bazarr.enable = true;
   custom.services.jellyseerr.enable = true;
   custom.services.cross-seed.enable = true;
+  custom.services.planka.enable = true;
+  custom.services.tandoor.enable = true;
   custom.services.netbird = {
     enable = true;
     dashboard.enable = true;
@@ -94,7 +91,7 @@
         name = "${config.hostSpec.hostName}-unbound";
         ip = "100.75.0.5";
         primary = false;
-        domains = [ "." ];
+        domains = ["."];
         searchDomains = false;
       }
     ];
@@ -110,6 +107,5 @@
   nixpkgs.overlays = [
     inputs.self.outputs.overlays.immich-openvino
     inputs.self.outputs.overlays.quic-kernel-module-overlay
-    inputs.self.outputs.overlays.samba-overlay
   ];
 }

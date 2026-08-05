@@ -210,13 +210,13 @@ in
                 enable = true;
                 user = "sonarr";
                 group = "sonarr";
+
+                formatDb = inputs.dumpstarr;
+
                 config = {
                   declarr = {
                     stateDir = "/var/lib/sonarr";
-                    # Why is this a requirement? Why does it not default??
-                    # Anyway pull in dictionarry quality database
-                    formatDbRepo = "https://github.com/Dumpstarr/Dumpstarr";
-                    formatDbBranch = "stable";
+                    # Pull in dictionarry quality database via Nix formatDb option
                     customFormatRecreate = true;
                     customFormatPreferRaw = true;
                     globalResolvePaths = [
@@ -326,10 +326,15 @@ in
                           "Scrubs (Banned Title)" = -200;
                         };
                       };
+                      "Anime 1080p" = { };
                     };
                   };
                 };
               };
+
+              # UMask 0002 so created season/episode dirs are 2775 (group-writable),
+              # which lets bazarr (member of `media`) write .srt files alongside.
+              systemd.services.sonarr.serviceConfig.UMask = lib.mkForce "0002";
 
               # Override declarr systemd deps
               systemd.services.declarr = {

@@ -7,4 +7,5 @@
     inherit (pkgs) snapraid-btrfs;
   };
   quic-kernel-module = pkgs.callPackage ./quic-kernel-module { };
+  planka = pkgs.callPackage ./planka { };
 }

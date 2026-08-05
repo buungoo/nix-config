@@ -505,6 +505,12 @@
 
             # Set group-readable permissions on certificate files
             if [[ -f /mnt/storage/step-ca/.step/certs/root_ca.crt ]]; then
+              chgrp ${caProxyGid} /mnt/storage/step-ca/.step
+              chmod 750 /mnt/storage/step-ca/.step
+
+              chgrp ${caProxyGid} /mnt/storage/step-ca/.step/certs
+              chmod 750 /mnt/storage/step-ca/.step/certs
+
               chmod 640 /mnt/storage/step-ca/.step/certs/root_ca.crt
               chmod 640 /mnt/storage/step-ca/.step/certs/intermediate_ca.crt
               chgrp ${caProxyGid} /mnt/storage/step-ca/.step/certs/root_ca.crt

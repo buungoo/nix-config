@@ -10,11 +10,16 @@
     ./immich.nix
     ./sonarr.nix
     ./qbittorrent.nix
+    ./qbit-manage.nix
     ./prowlarr.nix
     ./radarr.nix
+    ./bazarr.nix
     ./jellyseerr.nix
     ./samba-client.nix
     ./netbird.nix
     ./cross-seed.nix
+    ./cloudflare-dyndns.nix
+    ./planka.nix
+    ./tandoor.nix
   ];
 }

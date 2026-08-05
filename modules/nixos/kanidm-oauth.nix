@@ -43,6 +43,15 @@
             default = false;
             description = "Enable legacy crypto (RS256 instead of ES256)";
           };
+          allowInsecureClientDisablePkce = lib.mkOption {
+            type = lib.types.bool;
+            default = false;
+            description = ''
+              Disable PKCE on this OAuth2 client. Required for clients that
+              do not support sending a code_challenge (e.g., Planka v2.1.1).
+              Only safe for confidential clients (those with a client secret).
+            '';
+          };
           preferShortUsername = lib.mkOption {
             type = lib.types.bool;
             default = true;
@@ -52,6 +61,35 @@
             type = lib.types.attrsOf (lib.types.listOf lib.types.str);
             default = { };
             description = "Scope maps: group name -> list of scopes";
+          };
+          claimMap = lib.mkOption {
+            type = lib.types.attrsOf (
+              lib.types.submodule {
+                options = {
+                  joinType = lib.mkOption {
+                    type = lib.types.enum [
+                      "array"
+                      "csv"
+                      "ssv"
+                    ];
+                    default = "array";
+                    description = "How multiple values are joined into the claim";
+                  };
+                  valuesByGroup = lib.mkOption {
+                    type = lib.types.attrsOf (lib.types.listOf lib.types.str);
+                    default = { };
+                    description = "Kanidm group name -> claim values to emit for members of that group";
+                  };
+                };
+              }
+            );
+            default = { };
+            description = ''
+              Custom OIDC claims emitted in the userinfo response based on
+              the authenticated user's Kanidm group memberships. Used for
+              role-based access where the relying party reads a claim (e.g.,
+              `groups`) to decide privilege.
+            '';
           };
         };
       }

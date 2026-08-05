@@ -81,6 +81,5 @@
 
   nixpkgs.overlays = [
     inputs.self.outputs.overlays.quic-kernel-module-overlay
-    inputs.self.outputs.overlays.samba-overlay
   ];
 }

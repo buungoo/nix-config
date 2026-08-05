@@ -49,6 +49,8 @@ let
   gid = toString cfg.gid;
   mediaGid = 5000;
 
+  crossSeedNet = lib.custom.mkContainerNetworkConfig config cfg.network "cross-seed";
+
   sopsFolder = builtins.toString inputs.nix-secrets + "/sops";
 in
 {
@@ -209,8 +211,8 @@ in
 
         # Setup bindmount directories
         systemd.tmpfiles.rules = [
-          "d ${cfg.dataDir} 0700 ${uid} ${gid} -"
-          "d ${cfg.backupPath} 0700 ${uid} ${gid} -"
+          "d ${cfg.dataDir} 0750 ${uid} ${gid} -"
+          "d ${cfg.backupPath} 0750 ${uid} ${gid} -"
 
           "d ${cfg.torrentPath} 2775 ${uid} ${toString mediaGid} -"
           "d ${cfg.torrentPath}/books 2775 ${uid} ${toString mediaGid} -"
@@ -268,6 +270,10 @@ in
                 hostPath = config.sops.secrets."qbit/plaintext_password".path;
                 isReadOnly = true;
               };
+              "/run/secrets/cross-seed/api-key" = {
+                hostPath = config.sops.secrets."cross-seed/api-key".path;
+                isReadOnly = true;
+              };
             }
             (lib.mkIf cfg.vpn.enable {
               "/run/secrets/${cfg.vpn.privateKeySecret}" = {
@@ -305,7 +311,10 @@ in
               }
             ))
             {
-              environment.systemPackages = with pkgs; [ libnatpmp ];
+              environment.systemPackages = with pkgs; [
+                libnatpmp
+                curl
+              ];
 
               # VPN configuration
               # Route container network traffic via bridge, not VPN
@@ -358,6 +367,8 @@ in
                       Password_PBKDF2 = "PLACEHOLDER"; # Replaced by ExecStartPre with value from sops
                       AlternativeUIEnabled = true;
                       RootFolder = "${pkgs.vuetorrent}/share/vuetorrent";
+                      # AlternativeUIEnabled = false;
+                      # RootFolder = "";
                     };
                     BitTorrent = {
                       PortForwardingEnabled = false;
@@ -398,7 +409,21 @@ in
                         SlowTorrentsUploadRate = 500;
                       };
                     };
-                    Preferences.WebUI.ClickjackingProtection = false;
+                    Preferences = {
+                      "WebUI\\ClickjackingProtection" = false;
+                    };
+                    "AutoRun" = {
+                      "enabled" = true;
+                      "program" =
+                        "${pkgs.curl}/bin/curl -X POST \"http://${crossSeedNet.containerIP}:2468/api/webhook?apikey=API_KEY_PLACEHOLDER\" -d \"infoHash=%I\"";
+                    };
+                  }
+                  {
+                    Advanced = {
+                      AsyncIOThreads = 32; # Increase threads for NVMe
+                      LowLevelIoPriority = "false"; # Don't let the OS throttle torrent I/O
+                      DiskWriteCacheSize = 512; # MiB (buffer random writes before flush)
+                    };
                   }
                   cfg.serverConfig
                 ];
@@ -412,13 +437,22 @@ in
                   # UMask 0002 creates files as 0664 (group-writable), required for
                   # sonarr/radarr hardlinks due to fs.protected_hardlinks
                   serviceConfig.UMask = "0002";
-                  # Inject password from sops into config after the module's preStart writes serverConfig
-                  # mkAfter ensures this runs after the INI generator, which quotes @ByteArray() breaking Qt
-                  preStart = lib.mkAfter ''
-                    CONF="/var/lib/qbittorrent/qBittorrent/config/qBittorrent.conf"
-                    HASH=$(cat /run/secrets/${cfg.passwordSecret})
-                    ${pkgs.gnused}/bin/sed -i "s|Password_PBKDF2=.*|Password_PBKDF2=@ByteArray($HASH)|" "$CONF"
-                  '';
+                  # Inject secrets after the upstream module's ExecStartPre `install` overwrites
+                  # the config. mkAfter appends this entry so it runs last among ExecStartPre.
+                  serviceConfig.ExecStartPre = lib.mkAfter [
+                    (pkgs.writeShellScript "qbittorrent-inject-secrets" ''
+                      set -e
+                      CONF="/var/lib/qbittorrent/qBittorrent/config/qBittorrent.conf"
+
+                      # Inject qBittorrent password
+                      HASH=$(cat /run/secrets/${cfg.passwordSecret})
+                      ${pkgs.gnused}/bin/sed -i "s|Password_PBKDF2=.*|Password_PBKDF2=@ByteArray($HASH)|" "$CONF"
+
+                      # Inject cross-seed API key into the AutoRun command
+                      API_KEY=$(cat /run/secrets/cross-seed/api-key)
+                      ${pkgs.gnused}/bin/sed -i "s|API_KEY_PLACEHOLDER|$API_KEY|g" "$CONF"
+                    '')
+                  ];
                 }
                 # qbittorrent must wait for VPN
                 (lib.mkIf cfg.vpn.enable {

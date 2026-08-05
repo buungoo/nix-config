@@ -141,7 +141,14 @@
           # Just enable everything from host side if you are lazy
           hardware.graphics = {
             enable = true;
-            extraPackages = hostConfig.hardware.graphics.extraPackages;
+            extraPackages = hostConfig.hardware.graphics.extraPackages ++ [
+              pkgs.intel-compute-runtime
+              pkgs.intel-media-driver
+              pkgs.intel-ocl
+              pkgs.ocl-icd
+              pkgs.level-zero
+              pkgs.intel-vaapi-driver
+            ];
           };
 
           services.immich = {
@@ -156,6 +163,28 @@
               TZ = "Europe/Stockholm";
             };
             machine-learning.enable = true;
+            machine-learning.environment = {
+              MACHINE_LEARNING_WORKERS = "1";
+              MACHINE_LEARNING_MAX_BATCH_SIZE__FACIAL_RECOGNITION = "1";
+              MACHINE_LEARNING_MAX_BATCH_SIZE__CLIP = "1";
+              MACHINE_LEARNING_MAX_BATCH_SIZE__OCR = "1";
+              MACHINE_LEARNING_OPENVINO_PRECISION = "FP16";
+              MACHINE_LEARNING_WORKER_TIMEOUT = "300";
+              MACHINE_LEARNING_CACHE_FOLDER = "/var/cache/immich";
+              OPENVINO_DEVICE = "GPU,GPU_FP16,GPU.0";
+              MACHINE_LEARNING_DEVICE_IDS = "0";
+              OPENVINO_PERFORMANCE_HINT = "LATENCY";
+              ONNXRUNTIME_OPENVINO_ENABLE_DYNAMIC_SHAPES = "0";
+              # Explicit OpenCL ICD path for containers (no /etc/OpenCL/vendors).
+              OCL_ICD_VENDORS = "${pkgs.intel-compute-runtime}/etc/OpenCL/vendors";
+              OPENCL_VENDOR_PATH = "${pkgs.intel-compute-runtime}/etc/OpenCL/vendors";
+              OV_GPU_CACHE_DIR = "/var/cache/immich";
+              OV_GPU_ENABLE_PROPERTIES = "CACHE_DIR=/var/cache/immich";
+              ORT_LOG_LEVEL = "VERBOSE";
+              OV_LOG_LEVEL = "DEBUG";
+              # Ensure OpenVINO Python module is on the service PYTHONPATH
+              PYTHONPATH = "${pkgs.python3Packages.openvino}/${pkgs.python3.sitePackages}";
+            };
             # NOTE: This will just override the default values in immich-config.json
             # See https://immich.app/docs/install/config-file/
             settings = {
@@ -185,6 +214,77 @@
               };
             };
           };
+          # Patch InsightFace RetinaFace ONNX to static shape for OpenVINO GPU.
+          systemd.services.immich-machine-learning.preStart = lib.mkBefore ''
+            set -eu
+            set -x
+
+            LOG="/var/cache/immich/prestart.log"
+            echo "=== preStart $(date -Is) ===" >> "$LOG"
+
+            MODEL_DIR="/var/cache/immich/facial-recognition/buffalo_l/detection"
+            MODEL="$MODEL_DIR/model.onnx"
+            STATIC="$MODEL_DIR/model.static.onnx"
+            ORIGINAL="$MODEL_DIR/model.dynamic.onnx"
+
+            [ -f "$MODEL" ] || { echo "model missing: $MODEL" >> "$LOG"; exit 0; }
+
+            ml="$(systemctl show -p ExecStart --value immich-machine-learning | sed -n "s/.*path=\\([^ ;]*\\).*/\\1/p")"
+            gunicorn="$(grep -oE "/nix/store/[^\"[:space:]]+-gunicorn-[^\"[:space:]]+/bin/gunicorn" "$ml" | head -n1)"
+            wrapped="$(grep -oE "/nix/store/[^\"[:space:]]+/bin/\\.gunicorn-wrapped" "$gunicorn" | head -n1)"
+            python_path="$(sed -n "1{s/^#![[:space:]]*//;s/[[:space:]].*$//;p}" "$wrapped")"
+
+            tmp_env="$(mktemp)"
+            {
+              awk "/^PATH=|^export PATH|^export PYTHONNOUSERSITE/ {print}" "$gunicorn"
+              awk "/^PYTHONPATH=|^export PYTHONPATH/ {print}" "$ml"
+            } > "$tmp_env"
+
+            env -i PYTHON_PATH="$python_path" ENV_FILE="$tmp_env" MODEL="$MODEL" STATIC="$STATIC" ORIGINAL="$ORIGINAL" sh -c "
+              set -eu
+              . \"\$ENV_FILE\"
+              \"\$PYTHON_PATH\" - <<'PY'
+import os
+import onnx
+
+model_path = os.environ['MODEL']
+static_path = os.environ['STATIC']
+orig_path = os.environ['ORIGINAL']
+
+m = onnx.load(model_path)
+inputs = m.graph.input
+if not inputs:
+    raise SystemExit(0)
+
+inp = inputs[0]
+dims = inp.type.tensor_type.shape.dim
+
+def is_dynamic(dim):
+    return (dim.dim_param != '') or (dim.dim_value == 0)
+
+if not any(is_dynamic(d) for d in dims):
+    raise SystemExit(0)
+
+# Force static shape [1, 3, 640, 640]
+target = [1, 3, 640, 640]
+for i, d in enumerate(dims[:4]):
+    d.dim_value = target[i]
+    d.dim_param = ''
+
+onnx.save(m, static_path)
+
+# Preserve original once
+if not os.path.exists(orig_path):
+    os.rename(model_path, orig_path)
+
+os.replace(static_path, model_path)
+print('rewritten to static 640x640')
+PY
+            "
+
+            rm -f "$tmp_env"
+            ls -l "$MODEL_DIR" >> "$LOG" 2>&1 || true
+          '';
 
           # Create .immich marker files that Immich requires for mount verification
           # See https://docs.immich.app/administration/system-integrity#folder-checks

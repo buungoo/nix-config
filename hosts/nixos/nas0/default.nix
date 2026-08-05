@@ -35,17 +35,36 @@
     };
   };
 
+  custom.services.cloudflare-dyndns = {
+    ipv4 = true;
+    ipv6 = false;
+  };
+
   custom.services.prowlarr = {
     enable = true;
     indexerFile = inputs.nix-secrets + "/nix/nas0/prowlarr-indexers.nix";
     indexers = {
-      indexer-a = { secretName = "prowlarr/indexer-a/api-key"; };
-      indexer-b-api = { secretName = "prowlarr/indexer-b/api-key"; };
-      indexer-b-rss = { secretName = "prowlarr/indexer-b/rss-key"; };
-      indexer-c = { secretName = "prowlarr/indexer-c/api-key"; };
-      indexer-d = { secretName = "prowlarr/indexer-d/api-key"; };
-      indexer-e = { secretName = "prowlarr/indexer-e/api-key"; };
-      indexer-f = { secretName = "prowlarr/indexer-f/api-key"; };
+      indexer-a = {
+        secretName = "prowlarr/indexer-a/api-key";
+      };
+      indexer-b-api = {
+        secretName = "prowlarr/indexer-b/api-key";
+      };
+      indexer-b-rss = {
+        secretName = "prowlarr/indexer-b/rss-key";
+      };
+      indexer-c = {
+        secretName = "prowlarr/indexer-c/api-key";
+      };
+      indexer-d = {
+        secretName = "prowlarr/indexer-d/api-key";
+      };
+      indexer-e = {
+        secretName = "prowlarr/indexer-e/api-key";
+      };
+      indexer-f = {
+        secretName = "prowlarr/indexer-f/api-key";
+      };
     };
   };
 
@@ -53,7 +72,8 @@
 
   custom.services.cross-seed = {
     enable = true;
-  } // (import (inputs.nix-secrets + "/nix/nas0/cross-seed.nix") {
+  }
+  // (import (inputs.nix-secrets + "/nix/nas0/cross-seed.nix") {
     inherit config;
     prowlarrNet = lib.custom.mkContainerNetworkConfig config "arr" "prowlarr";
     sonarrNet = lib.custom.mkContainerNetworkConfig config "arr" "sonarr";

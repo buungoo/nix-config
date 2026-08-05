@@ -112,7 +112,12 @@ let
   mkMtlsFrontend = name: cfg: ''
         frontend https-${name}-mtls
           bind 127.0.0.1:${toString (getMtlsPort name)} ssl crt /var/lib/acme/${cfg.domain}/full.pem ca-file ${mTLSCaFile} verify required${
-            if cfg.backendH2 then " alpn h2,http/1.1" else ""
+            if name == "planka" then
+              " alpn http/1.1"
+            else if cfg.backendH2 then
+              " alpn h2,http/1.1"
+            else
+              ""
           }
           mode http
     ${lib.optionalString cfg.backendH2 ''
@@ -144,9 +149,7 @@ ${lib.optionalString (cfg.oidcDiscovery != null) ''
   # Generate HTTP frontend without mTLS (LAN only)
   mkLanFrontend = name: cfg: ''
         frontend https-${name}-lan
-          bind 127.0.0.1:${toString (getLanPort name)} ssl crt /var/lib/acme/${cfg.domain}/full.pem${
-            if cfg.backendH2 then " alpn h2,http/1.1" else ""
-          }
+          bind 127.0.0.1:${toString (getLanPort name)} ssl crt /var/lib/acme/${cfg.domain}/full.pem alpn ${if name == "planka" then "http/1.1" else "h2,http/1.1"}
           mode http
     ${lib.optionalString cfg.backendH2 ''
       # Extended timeouts for gRPC/HTTP2 long-lived connections
@@ -192,7 +195,8 @@ ${lib.optionalString (cfg.oidcDiscovery != null) ''
     );
 in
 {
-  imports = [ ./cloudflare-dyndns.nix ];
+  # Cloudflare Dynamic DNS is required for ACME certificate provisioning
+  custom.services.cloudflare-dyndns.enable = true;
 
   # ACME credentials for certificate provisioning
   sops.secrets."cloudflare/acme-env" = {

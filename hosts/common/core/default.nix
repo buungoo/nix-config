@@ -66,6 +66,7 @@ in
       (import ../pkgs/darwin { inherit pkgs; })
     ] ++ [
       outputs.overlays.default
+      outputs.overlays.immich-openvino
     ];
     config = {
       allowUnfree = true;

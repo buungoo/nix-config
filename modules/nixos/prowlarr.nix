@@ -212,6 +212,9 @@ in
                   enable = true;
                   user = "prowlarr";
                   group = "prowlarr";
+
+                  formatDb = inputs.dumpstarr;
+
                   config = {
                     declarr = {
                       stateDir = "/var/lib/prowlarr";

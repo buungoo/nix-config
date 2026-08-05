@@ -5,9 +5,6 @@
   default = final: _prev:
     (import ../pkgs/common { pkgs = final; });
 
-  # Samba 4.23.x overlay for SMB over QUIC support
-  samba-overlay = import ./samba-overlay.nix;
-
   # QUIC kernel module overlay
   quic-kernel-module-overlay = import ./quic-kernel-module-overlay.nix;
 

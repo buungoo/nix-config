@@ -227,11 +227,12 @@ func handleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Package certificate + private key + CA chain as .p12
-	// Use password from environment variable, default to empty string
+	// LegacyDES (pbeWithSHAAnd3-KeyTripleDES-CBC + SHA-1 MAC) is what iOS reliably
+	// accepts. Modern2023 (PBES2 + AES-256) installs as a profile but iOS 26's
+	// PKCS12 parser fails to decrypt the bags ("password is invalid" even when
+	// the password is correct).
 	p12Password := getEnv("P12_PASSWORD", "")
-	// p12Data, err := pkcs12.Modern2023.Encode(rand.Reader, privateKey, signedCert, caCerts, p12Password)
-	p12Data, err := pkcs12.Modern2023.Encode(privateKey, signedCert, caCerts, p12Password)
+	p12Data, err := pkcs12.LegacyDES.Encode(privateKey, signedCert, caCerts, p12Password)
 	if err != nil {
 		log.Printf("Failed to create PKCS12: %v", err)
 		http.Error(w, "Failed to create PKCS12", http.StatusInternalServerError)
@@ -307,27 +308,35 @@ func signCSR(ctx context.Context, csrDER []byte, oidcToken string) (*x509.Certif
 		return nil, nil, fmt.Errorf("failed to parse certificate: %w", err)
 	}
 
-	// Parse CA certificate
+	// step-ca returns the issuing CA in both `ca` and `certChain`, and `certChain`
+	// also contains the leaf. Dedup by serial number and exclude the leaf so the
+	// PKCS12 ends up with one bag per certificate. iOS 26 rejects PKCS12 files
+	// containing duplicate certificates with "invalid profile".
 	var caCerts []*x509.Certificate
-	if signResp.CaPEM != "" {
-		caBlock, _ := pem.Decode([]byte(signResp.CaPEM))
-		if caBlock != nil {
-			caCert, err := x509.ParseCertificate(caBlock.Bytes)
-			if err == nil {
-				caCerts = append(caCerts, caCert)
-			}
+	seen := map[string]bool{cert.SerialNumber.String(): true}
+
+	appendIfNew := func(pemBytes []byte) {
+		block, _ := pem.Decode(pemBytes)
+		if block == nil {
+			return
 		}
+		c, err := x509.ParseCertificate(block.Bytes)
+		if err != nil {
+			return
+		}
+		key := c.SerialNumber.String()
+		if seen[key] {
+			return
+		}
+		seen[key] = true
+		caCerts = append(caCerts, c)
 	}
 
-	// Parse chain if available
+	if signResp.CaPEM != "" {
+		appendIfNew([]byte(signResp.CaPEM))
+	}
 	for _, chainPEM := range signResp.ChainPEM {
-		chainBlock, _ := pem.Decode([]byte(chainPEM))
-		if chainBlock != nil {
-			chainCert, err := x509.ParseCertificate(chainBlock.Bytes)
-			if err == nil {
-				caCerts = append(caCerts, chainCert)
-			}
-		}
+		appendIfNew([]byte(chainPEM))
 	}
 
 	return cert, caCerts, nil

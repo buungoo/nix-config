@@ -9,6 +9,7 @@
       intel-compute-runtime # OpenCL filter support (hardware tonemapping and subtitle burn-in)
       vpl-gpu-rt # QSV on 11th gen or newer
       intel-ocl # OpenCL support
+      level-zero # Modern compute interface for Intel GPUs
     ];
   };
 

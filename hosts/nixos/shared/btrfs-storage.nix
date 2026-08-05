@@ -76,6 +76,7 @@ in
         "/lost+found/"
         "/.snapshots/"
         "/data_temp/"
+        "/data/arr/torrents/incomplete/"
       ];
 
       touch = true; # Help detect moved files
@@ -95,7 +96,7 @@ in
     services.snapraid-btrfs-runner = {
       enable = true;
       snapperConfigs = builtins.map (d: d.name) dataDisks;
-      deleteThreshold = 40;
+      deleteThreshold = 5000;
 
       timerConfig = {
         OnCalendar = "01:00";
@@ -108,6 +109,13 @@ in
         cpuSchedulingPolicy = "batch";
       };
     };
+
+    # Set No-COW (+C) on incomplete torrents directory to reduce latency during active downloads.
+    # Finished torrents move to COW-enabled directories for SnapRAID/Snapper protection.
+    systemd.tmpfiles.rules = lib.flatten (builtins.map (d: [
+      "d /mnt/disks/${d.name}/data/arr/torrents/incomplete - - - -"
+      "h /mnt/disks/${d.name}/data/arr/torrents/incomplete - - - - +C"
+    ]) dataDisks);
 
     # Helper Commands
     environment.shellAliases = {

@@ -112,7 +112,8 @@ in
         SystemCallArchitectures = "native";
         SystemCallFilter = "@system-service";
         SystemCallErrorNumber = "EPERM";
-        CapabilityBoundingSet = "";
+        CapabilityBoundingSet = "CAP_DAC_READ_SEARCH";
+        AmbientCapabilities = "CAP_DAC_READ_SEARCH";
         ProtectSystem = "strict";
         ProtectHome = "read-only";
 

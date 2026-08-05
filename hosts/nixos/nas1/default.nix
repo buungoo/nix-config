@@ -36,8 +36,10 @@
     };
   };
 
-  # nas1 is behind CGNAT, only update IPv6
-  services.cloudflare-dyndns.ipv4 = lib.mkForce false;
+  custom.services.cloudflare-dyndns = {
+    ipv4 = true;
+    ipv6 = true;
+  };
 
   custom.services.qbittorrent.vpn.enable = false;
   custom.services.qbittorrent.vpnFile = inputs.nix-secrets + "/nix/nas1/qbit.nix";
@@ -45,7 +47,8 @@
 
   custom.services.cross-seed = {
     enable = true;
-  } // (import (inputs.nix-secrets + "/nix/nas1/cross-seed.nix") {
+  }
+  // (import (inputs.nix-secrets + "/nix/nas1/cross-seed.nix") {
     inherit config;
     prowlarrNet = lib.custom.mkContainerNetworkConfig config "arr" "prowlarr";
     sonarrNet = lib.custom.mkContainerNetworkConfig config "arr" "sonarr";
